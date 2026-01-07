@@ -1,26 +1,308 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --chart-1: var(--chart-1);
+  --chart-2: var(--chart-2);
+  --chart-3: var(--chart-3);
+  --chart-4: var(--chart-4);
+  --chart-5: var(--chart-5);
+  --radius: 1rem; /* Updated to match Lovable */
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Apple specific colors */
+  --color-apple-blue: var(--apple-blue);
+  --color-apple-gray-light: var(--apple-gray-light);
+  --color-apple-gray: var(--apple-gray);
+  --color-apple-gray-dark: var(--apple-gray-dark);
+  --color-apple-text-primary: var(--apple-text-primary);
+  --color-apple-text-secondary: var(--apple-text-secondary);
+  --color-apple-text-tertiary: var(--apple-text-tertiary);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.6s ease-out;
+  --animate-fade-in-up: fade-in-up 0.8s ease-out;
+  --animate-scale-in: scale-in 0.5s ease-out;
+  --animate-slide-in-right: slide-in-right 0.5s ease-out;
+  --animate-float: float 3s ease-in-out infinite;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+
+  --card: 0 0% 98%;
+  --card-foreground: 0 0% 0%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 0%;
+
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+
+  --accent: 211 100% 50%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 211 100% 50%;
+
+  --radius: 0.75rem;
+
+  /* Apple-specific tokens */
+  --apple-blue: 211 100% 50%;
+  --apple-gray-light: 0 0% 97%;
+  --apple-gray: 0 0% 86%;
+  --apple-gray-dark: 0 0% 56%;
+  --apple-text-primary: 0 0% 0%;
+  --apple-text-secondary: 0 0% 29%;
+  --apple-text-tertiary: 0 0% 56%;
+
+  /* Gradients */
+  --gradient-hero: linear-gradient(
+    180deg,
+    hsl(0 0% 100%) 0%,
+    hsl(0 0% 97%) 100%
+  );
+  --gradient-card: linear-gradient(
+    145deg,
+    hsl(0 0% 100%) 0%,
+    hsl(0 0% 98%) 100%
+  );
+  --gradient-button: linear-gradient(
+    180deg,
+    hsl(0 0% 15%) 0%,
+    hsl(0 0% 0%) 100%
+  );
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px -2px hsla(0, 0%, 0%, 0.08);
+  --shadow-md: 0 8px 24px -8px hsla(0, 0%, 0%, 0.12);
+  --shadow-lg: 0 16px 48px -12px hsla(0, 0%, 0%, 0.16);
+  --shadow-product: 0 20px 60px -15px hsla(0, 0%, 0%, 0.2);
+
+  --sidebar-background: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+
+  --accent: 211 100% 50%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 211 100% 50%;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .apple-container {
+    @apply mx-auto max-w-[980px] px-4 sm:px-6;
+  }
+
+  .apple-container-wide {
+    @apply mx-auto max-w-[1200px] px-4 sm:px-6;
+  }
+
+  .apple-heading-hero {
+    @apply text-5xl leading-tight font-semibold tracking-tight sm:text-6xl md:text-7xl;
+  }
+
+  .apple-heading-section {
+    @apply text-4xl font-semibold tracking-tight sm:text-5xl;
+  }
+
+  .apple-heading-product {
+    @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+  }
+
+  .apple-text-large {
+    @apply text-xl leading-relaxed font-normal sm:text-2xl;
+  }
+
+  .apple-text-body {
+    @apply text-base leading-relaxed font-normal;
+  }
+
+  .apple-link {
+    @apply cursor-pointer text-[hsl(var(--apple-blue))] transition-all hover:underline;
+  }
+
+  .apple-card {
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-md);
+    @apply overflow-hidden rounded-2xl transition-all duration-300;
+  }
+
+  .apple-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+  }
+
+  .apple-button-primary {
+    background: var(--gradient-button);
+    @apply rounded-full px-8 py-3 font-medium text-white transition-all duration-200;
+  }
+
+  .apple-button-primary:hover {
+    @apply scale-[1.02] opacity-90;
+  }
+
+  .apple-button-secondary {
+    @apply rounded-full border border-[hsl(var(--apple-blue))] bg-transparent px-8 py-3 font-medium text-[hsl(var(--apple-blue))] transition-all duration-200;
+  }
+
+  .apple-button-secondary:hover {
+    @apply bg-[hsl(var(--apple-blue))] text-white;
+  }
+}
+
+/* Base styles for html/body from Lovable */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }
