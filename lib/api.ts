@@ -1,24 +1,61 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/register'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
-export async function registerApi(data: {
-  UserName: string
-  Email: string
-  Password: string
-  Password_confirmation: string
-}) {
-  const res = await fetch(`${API_URL}/register`, {
-    method: 'POST',
+async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('access_token');
+
+  const res = await fetch(`${API_URL}${endpoint}`, {
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
-    body: JSON.stringify(data)
-  })
+    ...options,
+  });
 
-  const result = await res.json()
+  const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(result.message || 'Register failed')
+    throw new Error(data.message || 'Request failed');
   }
 
-  return result
+  return data;
 }
+
+export const registerApi = (data: {
+  UserName: string;
+  Email: string;
+  Password: string;
+  Password_confirmation: string;
+}) =>
+  apiFetch('/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const verifyEmailApi = (data: {
+  Email: string;
+  Code: string;
+}) =>
+  apiFetch('/verify-email', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const resendCodeApi = (data: { Email: string }) =>
+  apiFetch('/resend-code', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const loginApi = (data: {
+  Email: string;
+  Password: string;
+}) =>
+  apiFetch('/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const getProfileApi = () => apiFetch('/profile');
+
+export const logoutApi = () =>
+  apiFetch('/logout', { method: 'POST' });
