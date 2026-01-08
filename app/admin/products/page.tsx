@@ -32,12 +32,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { getProductsApi, deleteProductApi } from '@/lib/api'
 import { toast } from 'sonner'
+import ProductModal from '@/components/ProductModal'
 
 export default function AdminProducts() {
     const [products, setProducts] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [editingProduct, setEditingProduct] = useState<any | null>(null)
 
     useEffect(() => {
         fetchProducts()
@@ -47,7 +52,6 @@ export default function AdminProducts() {
         try {
             setIsLoading(true)
             const data = await getProductsApi()
-            // Laravel often returns data in a 'data' property or just the array
             setProducts(Array.isArray(data) ? data : (data.data || []))
             setError(null)
         } catch (err: any) {
@@ -56,6 +60,16 @@ export default function AdminProducts() {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    const handleAddProduct = () => {
+        setEditingProduct(null)
+        setIsModalOpen(true)
+    }
+
+    const handleEditProduct = (product: any) => {
+        setEditingProduct(product)
+        setIsModalOpen(true)
     }
 
     const handleDelete = async (id: number) => {
@@ -81,7 +95,7 @@ export default function AdminProducts() {
     }
 
     const formatPrice = (price: any) => {
-        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0)
     }
 
     return (
@@ -91,7 +105,7 @@ export default function AdminProducts() {
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý sản phẩm</h1>
                     <p className="text-muted-foreground mt-1">Quản lý kho hàng và thông tin sản phẩm từ hệ thống.</p>
                 </div>
-                <Button className="apple-button-primary w-fit">
+                <Button onClick={handleAddProduct} className="apple-button-primary w-fit">
                     <Plus className="mr-2 h-4 w-4" /> Thêm sản phẩm mới
                 </Button>
             </div>
@@ -172,7 +186,7 @@ export default function AdminProducts() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                                                <DropdownMenuItem className="cursor-pointer">
+                                                <DropdownMenuItem onClick={() => handleEditProduct(product)} className="cursor-pointer">
                                                     <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
@@ -196,6 +210,14 @@ export default function AdminProducts() {
                     </Table>
                 </div>
             )}
+
+            <ProductModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                product={editingProduct}
+                onSuccess={fetchProducts}
+            />
         </div>
     )
 }
+

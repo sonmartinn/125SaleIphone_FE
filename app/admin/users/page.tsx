@@ -31,12 +31,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { getUsersApi, deleteUserApi } from '@/lib/api'
 import { toast } from 'sonner'
+import UserModal from '@/components/UserModal'
 
 export default function AdminUsers() {
     const [users, setUsers] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [editingUser, setEditingUser] = useState<any | null>(null)
 
     useEffect(() => {
         fetchUsers()
@@ -54,6 +59,16 @@ export default function AdminUsers() {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    const handleAddUser = () => {
+        setEditingUser(null)
+        setIsModalOpen(true)
+    }
+
+    const handleEditUser = (user: any) => {
+        setEditingUser(user)
+        setIsModalOpen(true)
     }
 
     const handleDelete = async (id: number) => {
@@ -79,7 +94,7 @@ export default function AdminUsers() {
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý người dùng</h1>
                     <p className="text-muted-foreground mt-1">Danh sách tất cả tài khoản từ hệ thống.</p>
                 </div>
-                <Button className="apple-button-primary w-fit">
+                <Button onClick={handleAddUser} className="apple-button-primary w-fit">
                     <UserPlus className="mr-2 h-4 w-4" /> Thêm người dùng
                 </Button>
             </div>
@@ -161,7 +176,7 @@ export default function AdminUsers() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                                                <DropdownMenuItem className="cursor-pointer">
+                                                <DropdownMenuItem onClick={() => handleEditUser(user)} className="cursor-pointer">
                                                     <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
@@ -185,6 +200,13 @@ export default function AdminUsers() {
                     </Table>
                 </div>
             )}
+
+            <UserModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                user={editingUser}
+                onSuccess={fetchUsers}
+            />
         </div>
     )
 }
