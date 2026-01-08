@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Package,
     Search,
@@ -9,7 +9,9 @@ import {
     Edit2,
     Trash2,
     Image as ImageIcon,
-    Tag
+    Tag,
+    Loader2,
+    AlertCircle
 } from 'lucide-react'
 import {
     Table,
@@ -28,28 +30,72 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-const mockProducts = [
-    { id: 1, name: 'iPhone 15 Pro Max', category: 'Smartphone', price: '34,990,000₫', stock: 15, status: 'in-stock', image: '/placeholder.svg' },
-    { id: 2, name: 'iPhone 15 Pro', category: 'Smartphone', price: '28,990,000₫', stock: 8, status: 'low-stock', image: '/placeholder.svg' },
-    { id: 3, name: 'MacBook Air M3', category: 'Laptop', price: '27,990,000₫', stock: 0, status: 'out-of-stock', image: '/placeholder.svg' },
-    { id: 4, name: 'AirPods Pro 2', category: 'Audio', price: '6,190,000₫', stock: 42, status: 'in-stock', image: '/placeholder.svg' },
-]
+import { getProductsApi, deleteProductApi } from '@/lib/api'
+import { toast } from 'sonner'
+import ProductModal from '@/components/ProductModal'
 
 export default function AdminProducts() {
+    const [products, setProducts] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
 
-    const getStockBadge = (status: string) => {
-        switch (status) {
-            case 'in-stock':
-                return <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-none">Còn hàng</Badge>
-            case 'low-stock':
-                return <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-none">Sắp hết</Badge>
-            case 'out-of-stock':
-                return <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-none">Hết hàng</Badge>
-            default:
-                return null
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [editingProduct, setEditingProduct] = useState<any | null>(null)
+
+    useEffect(() => {
+        fetchProducts()
+    }, [])
+
+    const fetchProducts = async () => {
+        try {
+            setIsLoading(true)
+            const data = await getProductsApi()
+            setProducts(Array.isArray(data) ? data : (data.data || []))
+            setError(null)
+        } catch (err: any) {
+            console.error('Fetch products error:', err)
+            setError('Không thể tải danh sách sản phẩm. Vui lòng kiểm tra backend.')
+        } finally {
+            setIsLoading(false)
         }
+    }
+
+    const handleAddProduct = () => {
+        setEditingProduct(null)
+        setIsModalOpen(true)
+    }
+
+    const handleEditProduct = (product: any) => {
+        setEditingProduct(product)
+        setIsModalOpen(true)
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return
+
+        try {
+            await deleteProductApi(id)
+            setProducts(products.filter(p => p.id !== id))
+            toast.success('Đã xóa sản phẩm thành công')
+        } catch (err: any) {
+            toast.error(err.message || 'Không thể xóa sản phẩm')
+        }
+    }
+
+    const filteredProducts = products.filter(product =>
+        product.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const getStockBadge = (stock: number) => {
+        if (stock > 10) return <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-none">Còn hàng</Badge>
+        if (stock > 0) return <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-none">Sắp hết</Badge>
+        return <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-none">Hết hàng</Badge>
+    }
+
+    const formatPrice = (price: any) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0)
     }
 
     return (
@@ -57,9 +103,9 @@ export default function AdminProducts() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý sản phẩm</h1>
-                    <p className="text-muted-foreground mt-1">Quản lý kho hàng và thông tin sản phẩm của bạn.</p>
+                    <p className="text-muted-foreground mt-1">Quản lý kho hàng và thông tin sản phẩm từ hệ thống.</p>
                 </div>
-                <Button className="apple-button-primary w-fit">
+                <Button onClick={handleAddProduct} className="apple-button-primary w-fit">
                     <Plus className="mr-2 h-4 w-4" /> Thêm sản phẩm mới
                 </Button>
             </div>
@@ -74,71 +120,104 @@ export default function AdminProducts() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button variant="outline" className="rounded-xl border-none bg-background/50">
-                    Danh mục
+                <Button variant="outline" className="rounded-xl border-none bg-background/50" onClick={fetchProducts}>
+                    Làm mới
                 </Button>
             </div>
 
-            <div className="rounded-xl border-none bg-secondary/20 backdrop-blur-sm overflow-hidden">
-                <Table>
-                    <TableHeader className="bg-secondary/50">
-                        <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="w-[300px]">Sản phẩm</TableHead>
-                            <TableHead>Danh mục</TableHead>
-                            <TableHead>Giá</TableHead>
-                            <TableHead>Tồn kho</TableHead>
-                            <TableHead>Trạng thái</TableHead>
-                            <TableHead className="text-right">Hành động</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {mockProducts.map((product) => (
-                            <TableRow key={product.id} className="hover:bg-secondary/30 transition-colors border-border/50">
-                                <TableCell className="font-medium">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-background border p-1 shadow-sm">
-                                            <ImageIcon size={24} className="text-muted-foreground/30" />
-                                        </div>
-                                        <span className="line-clamp-1">{product.name}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                                        <Tag size={14} />
-                                        {product.category}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="font-semibold text-foreground">
-                                    {product.price}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                    {product.stock} sản phẩm
-                                </TableCell>
-                                <TableCell>
-                                    {getStockBadge(product.status)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="rounded-full">
-                                                <MoreVertical size={16} />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                                            <DropdownMenuItem className="cursor-pointer">
-                                                <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="cursor-pointer text-red-500 focus:text-red-500">
-                                                <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
+            {isLoading ? (
+                <div className="flex h-64 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            ) : error ? (
+                <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-xl bg-destructive/5 text-destructive">
+                    <AlertCircle size={40} />
+                    <p className="font-medium">{error}</p>
+                    <Button variant="outline" onClick={fetchProducts}>Thử lại</Button>
+                </div>
+            ) : (
+                <div className="rounded-xl border-none bg-secondary/20 backdrop-blur-sm overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-secondary/50">
+                            <TableRow className="hover:bg-transparent border-none">
+                                <TableHead className="w-[300px]">Sản phẩm</TableHead>
+                                <TableHead>Danh mục</TableHead>
+                                <TableHead>Giá</TableHead>
+                                <TableHead>Tồn kho</TableHead>
+                                <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Hành động</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredProducts.length > 0 ? filteredProducts.map((product) => (
+                                <TableRow key={product.id} className="hover:bg-secondary/30 transition-colors border-border/50">
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-background border p-1 shadow-sm overflow-hidden">
+                                                {product.image ? (
+                                                    <img src={product.image} alt={product.name} className="h-full w-full object-contain" />
+                                                ) : (
+                                                    <ImageIcon size={24} className="text-muted-foreground/30" />
+                                                )}
+                                            </div>
+                                            <span className="line-clamp-1">{product.name}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                            <Tag size={14} />
+                                            {product.category || 'Chưa phân loại'}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-foreground">
+                                        {formatPrice(product.price)}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {product.stock || 0} sản phẩm
+                                    </TableCell>
+                                    <TableCell>
+                                        {getStockBadge(product.stock || 0)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="rounded-full">
+                                                    <MoreVertical size={16} />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                                                <DropdownMenuItem onClick={() => handleEditProduct(product)} className="cursor-pointer">
+                                                    <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="cursor-pointer text-red-500 focus:text-red-500"
+                                                    onClick={() => handleDelete(product.id)}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Xóa
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                                        Không tìm thấy sản phẩm nào.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+
+            <ProductModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                product={editingProduct}
+                onSuccess={fetchProducts}
+            />
         </div>
     )
 }
+

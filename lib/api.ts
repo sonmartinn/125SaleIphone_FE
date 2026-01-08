@@ -137,3 +137,71 @@ export async function sendMailApi(data: any) {
   }
   return result
 }
+
+// Product Management
+export async function getProductsApi() {
+  const res = await fetch(`${API_URL}/products`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to fetch products')
+  return result
+}
+
+export async function addProductApi(data: any) {
+  const res = await fetch(`${API_URL}/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to add product')
+  return result
+}
+
+export async function updateProductApi(id: number | string, data: any) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to update product')
+  return result
+}
+
+export async function deleteProductApi(id: number | string) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: 'DELETE'
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to delete product')
+  return result
+}
+
+// User Management
+export async function getUsersApi() {
+  // Try to fetch all users. If backend doesn't have /users, this will need adjustment.
+  const res = await fetch(`${API_URL}/users`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to fetch users')
+  return result
+}
+
+export async function updateUserApi(id: number | string, data: any) {
+  const res = await fetch(`${API_URL}/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to update user')
+  return result
+}
+
+export async function deleteUserApi(id: number | string) {
+  const res = await fetch(`${API_URL}/users/${id}`, {
+    method: 'DELETE'
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.message || 'Failed to delete user')
+  return result
+}
