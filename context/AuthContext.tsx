@@ -1,135 +1,155 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+'use client';
+
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+import {
+  registerApi,
+  loginApi,
+  verifyEmailApi,
+  resendCodeApi,
+  getProfileApi,
+  logoutApi,
+} from '@/lib/api';
+
+interface IUser {
+  IdUser: string;
+  UserName: string;
+  Email: string;
+  Role: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: any;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ error: string | null }>;
-  register: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
-  loginWithGoogle: () => Promise<{ error: string | null }>;
-  loginWithFacebook: () => Promise<{ error: string | null }>;
+  register: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<{ error?: string }>
+  verifyEmail: (
+    email: string,
+    code: string
+  ) => Promise<{ error?: string }>
+  resendCode: (email: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ error?: string }>
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface ProfileResponse {
+  data: IUser;
+}
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Auto login nếu có token
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const token = localStorage.getItem('access_token');
+    if (!token) {
       setIsLoading(false);
-    });
+      return;
+    }
 
-    return () => subscription.unsubscribe();
+  getProfileApi()
+      .then((res: ProfileResponse) => {
+        setUser(res.data);
+      })
+      .catch(() => {
+        localStorage.removeItem('access_token');
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        return { error: 'Email hoặc mật khẩu không đúng' };
+  const register = async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<{ error?: string }> => {
+    try {
+      await registerApi({
+        UserName: name,         
+        Email: email,
+        Password: password,
+        Password_confirmation: password,
+      })
+
+      return {}
+    } catch (err: any) {
+      return {
+        error: err.message || 'Đăng ký thất bại',
       }
-      return { error: error.message };
     }
-    return { error: null };
+  }
+
+
+  const verifyEmail = async (email: string, code: string) => {
+    try {
+      await verifyEmailApi({
+        Email: email,
+        Code: code,
+      })
+
+      return { error: null }
+    } catch (err: any) {
+      return {
+        error: err.message || 'Xác thực email thất bại',
+      }
+    }
+  }
+
+
+  const resendCode = async (email: string) => {
+    await resendCodeApi({ Email: email });
   };
 
-  const register = async (name: string, email: string, password: string): Promise<{ error: string | null }> => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: name,
-        }
-      }
-    });
-    
-    if (error) {
-      if (error.message.includes('User already registered')) {
-        return { error: 'Email này đã được đăng ký' };
-      }
-      return { error: error.message };
-    }
-    return { error: null };
-  };
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ error?: string }> => {
+    try {
+      await loginApi({
+        Email: email,
+        Password: password,
+      })
 
-  const loginWithGoogle = async (): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`,
+      return {}
+    } catch (err: any) {
+      return {
+        error: err.message || 'Đăng nhập thất bại',
       }
-    });
-    
-    if (error) {
-      return { error: error.message };
     }
-    return { error: null };
-  };
-
-  const loginWithFacebook = async (): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      }
-    });
-    
-    if (error) {
-      return { error: error.message };
-    }
-    return { error: null };
-  };
+  }
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await logoutApi();
+    localStorage.removeItem('access_token');
+    setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      isAuthenticated: !!user,
-      isLoading,
-      login,
-      register,
-      loginWithGoogle,
-      loginWithFacebook,
-      logout,
-    }}>
+return (
+  <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        register,
+        verifyEmail,
+        resendCode,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
-};
+  const ctx = useContext(AuthContext);
+    if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+    return ctx;
+  };

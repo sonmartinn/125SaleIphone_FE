@@ -24,8 +24,8 @@ const AuthPage: React.FC = () => {
   const {
     login,
     register,
-    loginWithGoogle,
-    loginWithFacebook,
+    // loginWithGoogle,
+    // loginWithFacebook,
     isAuthenticated
   } = useAuth()
   const router = useRouter()
@@ -47,29 +47,40 @@ const AuthPage: React.FC = () => {
         const { error } = await login(formData.email, formData.password)
         if (error) {
           toast.error(error)
-        } else {
-          toast.success('Đăng nhập thành công!')
-          router.push(from)
-        }
+          return
+        } 
+
+        toast.success('Đăng nhập thành công!')
+        router.push(from)
       } else {
         if (formData.password !== formData.confirmPassword) {
           toast.error('Mật khẩu xác nhận không khớp')
           return
         }
+
         if (formData.password.length < 6) {
           toast.error('Mật khẩu phải có ít nhất 6 ký tự')
           return
         }
+
         const { error } = await register(
           formData.name,
           formData.email,
           formData.password
         )
+
+        try {
+          await register(formData.name, formData.email, formData.password)
+          toast.success('Đăng ký thành công! Vui lòng kiểm tra email')
+          router.push(`/verify-email?email=${formData.email}`)
+        } catch (err: any) {
+          toast.error(err.message || 'Đăng ký thất bại')
+        }
         if (error) {
           toast.error(error)
         } else {
-          toast.success('Đăng ký thành công!')
-          router.push(from)
+          toast.success('Đăng ký thành công! Vui lòng kiểm tra email')
+          router.push(`/verify-email?email=${formData.email}`)
         }
       }
     } finally {
@@ -77,19 +88,19 @@ const AuthPage: React.FC = () => {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    const { error } = await loginWithGoogle()
-    if (error) {
-      toast.error('Không thể đăng nhập bằng Google. Vui lòng thử lại.')
-    }
-  }
+  // const handleGoogleLogin = async () => {
+  //   const { error } = await loginWithGoogle()
+  //   if (error) {
+  //     toast.error('Không thể đăng nhập bằng Google. Vui lòng thử lại.')
+  //   }
+  // }
 
-  const handleFacebookLogin = async () => {
-    const { error } = await loginWithFacebook()
-    if (error) {
-      toast.error('Không thể đăng nhập bằng Facebook. Vui lòng thử lại.')
-    }
-  }
+  // const handleFacebookLogin = async () => {
+  //   const { error } = await loginWithFacebook()
+  //   if (error) {
+  //     toast.error('Không thể đăng nhập bằng Facebook. Vui lòng thử lại.')
+  //   }
+  // }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -123,7 +134,7 @@ const AuthPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 className="border-border hover:bg-secondary flex h-12 w-full items-center justify-center gap-3"
-                onClick={handleGoogleLogin}
+                // onClick={handleGoogleLogin}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -150,7 +161,7 @@ const AuthPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 className="border-border hover:bg-secondary flex h-12 w-full items-center justify-center gap-3"
-                onClick={handleFacebookLogin}
+                // onClick={handleFacebookLogin}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="#1877F2">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />

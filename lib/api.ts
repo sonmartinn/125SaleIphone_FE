@@ -1,26 +1,82 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
-export async function registerApi(data: {
-  UserName: string
-  Email: string
-  Password: string
-  Password_confirmation: string
-}) {
-  const res = await fetch(`${API_URL}/register`, {
-    method: 'POST',
+async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('access_token')
+      : null;
+
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    method: options.method || 'GET',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify(data)
-  })
+    body: options.body,
+  });
 
-  const result = await res.json()
-
-  if (!res.ok) {
-    throw new Error(result.message || 'Register failed')
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text();
+    throw new Error(
+      `API không trả JSON. Status ${res.status}. Response: ${text}`
+    );
   }
 
-  return result
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Request failed');
+  }
+
+  return data;
+}
+
+/* ================= AUTH API ================= */
+
+export const registerApi = (data: {
+  UserName: string;
+  Email: string;
+  Password: string;
+  Password_confirmation: string;
+}) =>
+  apiFetch('/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const verifyEmailApi = (data: {
+  Email: string;
+  Code: string;
+}) =>
+  apiFetch('/verify-email', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const resendCodeApi = (data: { Email: string }) =>
+  apiFetch('/resend-code', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const loginApi = (data: {
+  Email: string;
+  Password: string;
+}) =>
+  apiFetch('/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const getProfileApi = () => apiFetch('/profile');
+
+export const logoutApi = () =>
+  apiFetch('/logout', { method: 'POST' });
+
+export function getMeApi() {
+  return apiFetch('/user');
 }
 
 export async function checkoutApi(data: any) {
