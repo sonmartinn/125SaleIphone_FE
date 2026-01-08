@@ -92,8 +92,8 @@ const CheckoutPage: React.FC = () => {
         shipping_address: fullAddress,
         phone: shippingInfo.phone,
         payment_method: paymentMethod,
-        recipient_name: shippingInfo.fullName, // Send recipient name if needed backend
-        email: user.email // Ensure email is sent
+        recipient_name: shippingInfo.fullName,
+        email: user.email
       }
 
       console.log('Sending order data:', orderData);
@@ -102,24 +102,43 @@ const CheckoutPage: React.FC = () => {
       const result = await checkoutApi(orderData)
       console.log('Checkout result:', result);
 
-      // If successful, send confirmation email
+      // 1. Handle External Payment Redirect (MoMo, VNPay, etc.)
+      if (result.payment_url) {
+        toast.info('Đang chuyển hướng đến cổng thanh toán...')
+        setTimeout(() => {
+          window.location.href = result.payment_url
+        }, 1500)
+        return // Stop further execution here
+      }
+
+      // 2. Handle Success (COD or completed payments)
       try {
         await sendMailApi({
           email: user.email,
-          order_id: result.order_id || result.id || 'N/A', // Adjust based on actual response
+          order_id: result.order_id || result.id || 'N/A',
           total_amount: totalPrice,
           items: items
         })
       } catch (mailError) {
         console.error("Failed to send email:", mailError)
-        // Don't block success just because email failed, but maybe notify user?
       }
 
       clearCart()
-      toast.success('Đặt hàng thành công!', {
-        description: 'Cảm ơn bạn đã mua sắm tại Apple Store'
-      })
-      router.push('/profile')
+
+      // 3. Show Bank Instructions if applicable
+      if (paymentMethod === 'bank' && result.payment_instructions) {
+        toast.success('Đặt hàng thành công!', {
+          description: 'Vui lòng thực hiện chuyển khoản theo hướng dẫn.'
+        })
+        // You might want to set a state to show instructions UI here
+        // For now, redirect to profile to see order details
+        router.push('/profile')
+      } else {
+        toast.success('Đặt hàng thành công!', {
+          description: 'Cảm ơn bạn đã mua sắm tại Apple Store'
+        })
+        router.push('/profile')
+      }
     } catch (error: any) {
       console.error('Error creating order:', error)
       toast.error(error.message || 'Không thể đặt hàng. Vui lòng thử lại.')

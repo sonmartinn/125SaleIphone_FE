@@ -18,6 +18,7 @@ const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Sản phẩm', href: '/admin/products', icon: Package },
     { name: 'Người dùng', href: '/admin/users', icon: Users },
+    { name: 'Đơn hàng', href: '/admin/orders', icon: ShoppingBag },
 ]
 
 const AdminSidebar = () => {

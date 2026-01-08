@@ -55,8 +55,8 @@ export default function AdminProducts() {
             setProducts(Array.isArray(data) ? data : (data.data || []))
             setError(null)
         } catch (err: any) {
-            console.error('Fetch products error:', err)
-            setError('Không thể tải danh sách sản phẩm. Vui lòng kiểm tra backend.')
+            console.error('Fetch users error:', err)
+            setError(err.message || 'Không thể tải danh sách người dùng. Vui lòng kiểm tra backend.')
         } finally {
             setIsLoading(false)
         }

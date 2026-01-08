@@ -1,33 +1,79 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Users,
     Package,
     ShoppingBag,
     TrendingUp,
-    DollarSign
+    Laptop
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-const stats = [
-    {
-        title: 'Tổng sản phẩm',
-        value: '128',
-        icon: Package,
-        trend: '+5.2%',
-        trendUp: true,
-    },
-    {
-        title: 'Tổng người dùng',
-        value: '890',
-        icon: Users,
-        trend: '+18.1%',
-        trendUp: true,
-    },
-]
+import { getProductsApi, getUsersApi, getOrdersApi } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 export default function AdminDashboard() {
+    const [stats, setStats] = useState([
+        {
+            title: 'Tổng sản phẩm',
+            value: '0',
+            icon: Package,
+            trend: 'Click để xem',
+            trendUp: true,
+            href: '/admin/products'
+        },
+        {
+            title: 'Tổng người dùng',
+            value: '0',
+            icon: Users,
+            trend: 'Quản lý ngay',
+            trendUp: true,
+            href: '/admin/users'
+        },
+        {
+            title: 'Đơn hàng mới',
+            value: '0',
+            icon: ShoppingBag,
+            trend: 'Chưa xử lý',
+            trendUp: false,
+            href: '/admin/orders'
+        },
+        {
+            title: 'Mẹo quản trị',
+            value: 'Tips',
+            icon: Laptop,
+            trend: 'Xem hướng dẫn',
+            trendUp: true,
+            href: '#'
+        },
+    ])
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const [products, users, orders] = await Promise.all([
+                    getProductsApi(),
+                    getUsersApi(),
+                    getOrdersApi().catch(() => [])
+                ])
+
+                const productCount = Array.isArray(products) ? products.length : (products.data?.length || 0)
+                const userCount = Array.isArray(users) ? users.length : (users.data?.length || 0)
+                const orderCount = Array.isArray(orders) ? orders.length : (orders.data?.length || 0)
+
+                setStats(prev => [
+                    { ...prev[0], value: productCount.toString() },
+                    { ...prev[1], value: userCount.toString() },
+                    { ...prev[2], value: orderCount.toString() },
+                    prev[3]
+                ])
+            } catch (error) {
+                console.error('Stats fetch error:', error)
+            }
+        }
+        fetchStats()
+    }, [])
+
     return (
         <div className="space-y-8">
             <div>
@@ -35,9 +81,9 @@ export default function AdminDashboard() {
                 <p className="text-muted-foreground mt-1">Chào mừng bạn quay trở lại với bảng điều quản trị.</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat) => (
-                    <Card key={stat.title} className="hover:shadow-lg transition-all border-none bg-secondary/30 backdrop-blur-sm p-2">
+                    <Card key={stat.title} className="hover:shadow-lg transition-all border-none bg-secondary/30 backdrop-blur-sm">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 {stat.title}
@@ -51,7 +97,7 @@ export default function AdminDashboard() {
                             <div className="flex items-center mt-2">
                                 <TrendingUp size={14} className={stat.trendUp ? "text-green-500 mr-1" : "text-red-500 mr-1"} />
                                 <p className={cn("text-xs font-medium", stat.trendUp ? "text-green-500" : "text-red-500")}>
-                                    {stat.trend} <span className="text-muted-foreground ml-1 font-normal text-[10px]">so với tháng trước</span>
+                                    {stat.trend}
                                 </p>
                             </div>
                         </CardContent>
@@ -70,14 +116,10 @@ export default function AdminDashboard() {
                     <ul className="list-disc list-inside space-y-2 text-sm text-foreground/80">
                         <li><strong>Quản lý sản phẩm:</strong> Thêm mới, chỉnh sửa thông tin hoặc xóa các dòng iPhone khỏi cửa hàng.</li>
                         <li><strong>Quản lý người dùng:</strong> Xem danh sách khách hàng và quản lý quyền truy cập.</li>
+                        <li><strong>Quản lý đơn hàng:</strong> Theo dõi đơn hàng mới và cập nhật trạng thái giao hàng.</li>
                     </ul>
                 </CardContent>
             </Card>
         </div>
     )
-}
-
-// Utility function to merge classes (copy if not found in utils)
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(' ')
 }

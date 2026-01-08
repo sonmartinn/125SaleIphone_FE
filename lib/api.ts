@@ -79,129 +79,68 @@ export function getMeApi() {
   return apiFetch('/user');
 }
 
-export async function checkoutApi(data: any) {
-  const res = await fetch(`${API_URL}/payment/checkout`, {
+export const checkoutApi = (data: any) =>
+  apiFetch('/payment/checkout', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
+    body: JSON.stringify(data),
+  });
 
-  // Check if response is JSON
-  const contentType = res.headers.get('content-type')
-  if (contentType && contentType.includes('application/json')) {
-    const result = await res.json()
-    if (!res.ok) {
-      throw new Error(result.message || 'Checkout failed')
-    }
-    return result
-  } else {
-    // Handle non-JSON response (likely an error page or empty)
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Checkout failed: ${res.status} ${res.statusText}`)
-    }
-    return true // Or some default success if no JSON returned
-  }
-}
+export const paymentCallbackApi = (params: any) => {
+  const queryString = new URLSearchParams(params).toString();
+  return apiFetch(`/payment/callback?${queryString}`);
+};
 
-export async function paymentCallbackApi(params: any) {
-  const queryString = new URLSearchParams(params).toString()
-  const res = await fetch(`${API_URL}/payment/callback?${queryString}`, {
-    method: 'GET', // Or POST depending on provider, usually GET for callback redirects
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-
-  const result = await res.json()
-  if (!res.ok) {
-    throw new Error(result.message || 'Payment callback failed')
-  }
-  return result
-}
-
-export async function sendMailApi(data: any) {
-  const res = await fetch(`${API_URL}/payment/send-mail`, {
+export const sendMailApi = (data: any) =>
+  apiFetch('/payment/send-mail', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
-
-  const result = await res.json()
-  if (!res.ok) {
-    throw new Error(result.message || 'Send mail failed')
-  }
-  return result
-}
+    body: JSON.stringify(data),
+  });
 
 // Product Management
-export async function getProductsApi() {
-  const res = await fetch(`${API_URL}/products`)
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to fetch products')
-  return result
-}
+export const getProductsApi = () => apiFetch('/products');
 
-export async function addProductApi(data: any) {
-  const res = await fetch(`${API_URL}/products`, {
+export const addProductApi = (data: any) =>
+  apiFetch('/products', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to add product')
-  return result
-}
+    body: JSON.stringify(data),
+  });
 
-export async function updateProductApi(id: number | string, data: any) {
-  const res = await fetch(`${API_URL}/products/${id}`, {
+export const updateProductApi = (id: number | string, data: any) =>
+  apiFetch(`/products/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to update product')
-  return result
-}
+    body: JSON.stringify(data),
+  });
 
-export async function deleteProductApi(id: number | string) {
-  const res = await fetch(`${API_URL}/products/${id}`, {
-    method: 'DELETE'
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to delete product')
-  return result
-}
+export const deleteProductApi = (id: number | string) =>
+  apiFetch(`/products/${id}`, {
+    method: 'DELETE',
+  });
 
 // User Management
-export async function getUsersApi() {
-  // Try to fetch all users. If backend doesn't have /users, this will need adjustment.
-  const res = await fetch(`${API_URL}/users`)
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to fetch users')
-  return result
-}
+export const getUsersApi = () => apiFetch('/users');
 
-export async function updateUserApi(id: number | string, data: any) {
-  const res = await fetch(`${API_URL}/users/${id}`, {
+export const updateUserApi = (id: number | string, data: any) =>
+  apiFetch(`/users/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to update user')
-  return result
-}
+    body: JSON.stringify(data),
+  });
 
-export async function deleteUserApi(id: number | string) {
-  const res = await fetch(`${API_URL}/users/${id}`, {
-    method: 'DELETE'
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.message || 'Failed to delete user')
-  return result
-}
+export const deleteUserApi = (id: number | string) =>
+  apiFetch(`/users/${id}`, {
+    method: 'DELETE',
+  });
+
+/* ================= ORDER MANAGEMENT API ================= */
+
+export const getOrdersApi = () => apiFetch('/orders');
+
+export const updateOrderStatusApi = (id: string | number, status: number | string) =>
+  apiFetch(`/orders/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+
+export const deleteOrderApi = (id: string | number) =>
+  apiFetch(`/orders/${id}`, {
+    method: 'DELETE',
+  });
