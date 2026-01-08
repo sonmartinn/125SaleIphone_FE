@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Loader2, CreditCard, Banknote, Smartphone } from 'lucide-react'
+import { checkoutApi, sendMailApi } from '@/lib/api'
 
 const CheckoutPage: React.FC = () => {
   const { items, totalPrice, clearCart } = useCart()
@@ -72,6 +73,8 @@ const CheckoutPage: React.FC = () => {
     }).format(price)
   }
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
@@ -81,28 +84,45 @@ const CheckoutPage: React.FC = () => {
     try {
       const fullAddress = `${shippingInfo.address}, ${shippingInfo.city}${shippingInfo.note ? ` (${shippingInfo.note})` : ''}`
 
-      const { error } = await supabase.from('orders').insert([
-        {
-          user_id: user.id,
-          items: items as any,
-          total_amount: totalPrice,
-          shipping_address: fullAddress,
-          phone: shippingInfo.phone,
-          payment_method: paymentMethod,
-          status: 'pending'
-        }
-      ])
+      // Prepare order data for Laravel API
+      const orderData = {
+        user_id: user.id,
+        items: items,
+        total_amount: totalPrice,
+        shipping_address: fullAddress,
+        phone: shippingInfo.phone,
+        payment_method: paymentMethod,
+        recipient_name: shippingInfo.fullName, // Send recipient name if needed backend
+        email: user.email // Ensure email is sent
+      }
 
-      if (error) throw error
+      console.log('Sending order data:', orderData);
+
+      // Call Laravel API
+      const result = await checkoutApi(orderData)
+      console.log('Checkout result:', result);
+
+      // If successful, send confirmation email
+      try {
+        await sendMailApi({
+          email: user.email,
+          order_id: result.order_id || result.id || 'N/A', // Adjust based on actual response
+          total_amount: totalPrice,
+          items: items
+        })
+      } catch (mailError) {
+        console.error("Failed to send email:", mailError)
+        // Don't block success just because email failed, but maybe notify user?
+      }
 
       clearCart()
       toast.success('Đặt hàng thành công!', {
         description: 'Cảm ơn bạn đã mua sắm tại Apple Store'
       })
       router.push('/profile')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error)
-      toast.error('Không thể đặt hàng. Vui lòng thử lại.')
+      toast.error(error.message || 'Không thể đặt hàng. Vui lòng thử lại.')
     } finally {
       setIsLoading(false)
     }
@@ -244,11 +264,10 @@ const CheckoutPage: React.FC = () => {
                       <div className="space-y-4">
                         <label
                           htmlFor="cod"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                            paymentMethod === 'cod'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
-                          }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'cod'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
+                            }`}
                         >
                           <RadioGroupItem value="cod" id="cod" />
                           <Banknote className="text-muted-foreground h-6 w-6" />
@@ -264,11 +283,10 @@ const CheckoutPage: React.FC = () => {
 
                         <label
                           htmlFor="bank"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                            paymentMethod === 'bank'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
-                          }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'bank'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
+                            }`}
                         >
                           <RadioGroupItem value="bank" id="bank" />
                           <CreditCard className="text-muted-foreground h-6 w-6" />
@@ -284,11 +302,10 @@ const CheckoutPage: React.FC = () => {
 
                         <label
                           htmlFor="momo"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                            paymentMethod === 'momo'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
-                          }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'momo'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
+                            }`}
                         >
                           <RadioGroupItem value="momo" id="momo" />
                           <Smartphone className="text-muted-foreground h-6 w-6" />
