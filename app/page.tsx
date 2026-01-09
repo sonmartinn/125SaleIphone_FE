@@ -1,17 +1,55 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import HeroSection from '@/components/HeroSection'
 import ProductCard from '@/components/ProductCard'
-import { getIphones, getAccessories } from '@/data/products'
-import { ArrowRight } from 'lucide-react'
+import { getProductsApi } from '@/lib/api'
+import { Product } from '@/types'
+import { ArrowRight, Loader2 } from 'lucide-react'
 
 const Index: React.FC = () => {
-  const iphones = getIphones().slice(0, 4)
-  const accessories = getAccessories().slice(0, 4)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        const response = await getProductsApi()
+        // Assuming API returns { value: [...], count: 3 } based on previous terminal output
+        const fetchedProducts = response.value || []
+
+        // Map backend product structure to frontend Product interface if needed
+        // Assuming backend fields: IdProduct, NameProduct, PriceProduct, ImageProduct, CategoryId
+        const mappedProducts: Product[] = fetchedProducts.map((p: any) => ({
+          id: p.IdProduct?.toString() || p.id?.toString(),
+          name: p.NameProduct || p.name,
+          subtitle: p.Description || p.subtitle || '',
+          price: p.PriceProduct || p.price,
+          image: p.ImageProduct || p.image,
+          category: (p.CategoryId === 1 || p.category === 'iphone') ? 'iphone' : 'accessory',
+          isNew: p.isNew || false,
+          isFeatured: p.isFeatured || false
+        }))
+
+        setProducts(mappedProducts)
+      } catch (err: any) {
+        console.error('Error fetching products:', err)
+        setError('Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+
+  const iphones = products.filter(p => p.category === 'iphone').slice(0, 4)
+  const accessories = products.filter(p => p.category === 'accessory').slice(0, 4)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -21,102 +59,121 @@ const Index: React.FC = () => {
         {/* Hero */}
         <HeroSection />
 
-        {/* iPhone Section */}
-        <section className="bg-secondary py-20">
-          <div className="apple-container-wide">
-            <div className="mb-12 flex items-center justify-between">
-              <div>
-                <h2 className="apple-heading-section text-foreground mb-2">
-                  iPhone
-                </h2>
-                <p className="apple-text-body text-muted-foreground">
-                  Khám phá dòng iPhone mới nhất
-                </p>
-              </div>
-              <Link
-                href="/iphone"
-                className="text-apple-blue flex items-center gap-2 hover:underline"
-              >
-                Xem tất cả
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {iphones.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+        {loading ? (
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-apple-blue" />
+            <span className="ml-2 text-lg">Đang tải sản phẩm...</span>
           </div>
-        </section>
-
-        {/* Accessories Section */}
-        <section className="bg-background py-20">
-          <div className="apple-container-wide">
-            <div className="mb-12 flex items-center justify-between">
-              <div>
-                <h2 className="apple-heading-section text-foreground mb-2">
-                  Phụ kiện
-                </h2>
-                <p className="apple-text-body text-muted-foreground">
-                  Nâng cao trải nghiệm iPhone của bạn
-                </p>
-              </div>
-              <Link
-                href="/accessories"
-                className="text-apple-blue flex items-center gap-2 hover:underline"
-              >
-                Xem tất cả
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {accessories.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+        ) : error ? (
+          <div className="flex h-64 flex-col items-center justify-center text-red-500">
+            <p>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-full bg-apple-blue px-6 py-2 text-white hover:bg-opacity-90 transition-all"
+            >
+              Thử lại
+            </button>
           </div>
-        </section>
+        ) : (
+          <>
+            {/* iPhone Section */}
+            <section className="bg-secondary py-20">
+              <div className="apple-container-wide">
+                <div className="mb-12 flex items-center justify-between">
+                  <div>
+                    <h2 className="apple-heading-section text-foreground mb-2">
+                      iPhone
+                    </h2>
+                    <p className="apple-text-body text-muted-foreground">
+                      Khám phá dòng iPhone mới nhất
+                    </p>
+                  </div>
+                  <Link
+                    href="/iphone"
+                    className="text-apple-blue flex items-center gap-2 hover:underline"
+                  >
+                    Xem tất cả
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
 
-        {/* Features Banner */}
-        <section className="bg-foreground text-primary-foreground py-16">
-          <div className="apple-container-wide">
-            <div className="grid grid-cols-1 gap-8 text-center md:grid-cols-3">
-              <div className="animate-fade-in">
-                <div className="mb-4 text-4xl">📦</div>
-                <h3 className="mb-2 text-lg font-semibold">
-                  Giao hàng miễn phí
-                </h3>
-                <p className="text-primary-foreground/70 text-sm">
-                  Cho đơn hàng từ 1.000.000đ
-                </p>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                  {iphones.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
               </div>
-              <div
-                className="animate-fade-in"
-                style={{ animationDelay: '0.1s' }}
-              >
-                <div className="mb-4 text-4xl">🔄</div>
-                <h3 className="mb-2 text-lg font-semibold">Đổi trả dễ dàng</h3>
-                <p className="text-primary-foreground/70 text-sm">
-                  Trong vòng 14 ngày
-                </p>
+            </section>
+
+            {/* Accessories Section */}
+            <section className="bg-background py-20">
+              <div className="apple-container-wide">
+                <div className="mb-12 flex items-center justify-between">
+                  <div>
+                    <h2 className="apple-heading-section text-foreground mb-2">
+                      Phụ kiện
+                    </h2>
+                    <p className="apple-text-body text-muted-foreground">
+                      Nâng cao trải nghiệm iPhone của bạn
+                    </p>
+                  </div>
+                  <Link
+                    href="/accessories"
+                    className="text-apple-blue flex items-center gap-2 hover:underline"
+                  >
+                    Xem tất cả
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                  {accessories.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
               </div>
-              <div
-                className="animate-fade-in"
-                style={{ animationDelay: '0.2s' }}
-              >
-                <div className="mb-4 text-4xl">🛡️</div>
-                <h3 className="mb-2 text-lg font-semibold">
-                  Bảo hành chính hãng
-                </h3>
-                <p className="text-primary-foreground/70 text-sm">
-                  12 tháng tại Apple
-                </p>
+            </section>
+
+            {/* Features Banner */}
+            <section className="bg-foreground text-primary-foreground py-16">
+              <div className="apple-container-wide">
+                <div className="grid grid-cols-1 gap-8 text-center md:grid-cols-3">
+                  <div className="animate-fade-in">
+                    <div className="mb-4 text-4xl">📦</div>
+                    <h3 className="mb-2 text-lg font-semibold">
+                      Giao hàng miễn phí
+                    </h3>
+                    <p className="text-primary-foreground/70 text-sm">
+                      Cho đơn hàng từ 1.000.000đ
+                    </p>
+                  </div>
+                  <div
+                    className="animate-fade-in"
+                    style={{ animationDelay: '0.1s' }}
+                  >
+                    <div className="mb-4 text-4xl">🔄</div>
+                    <h3 className="mb-2 text-lg font-semibold">Đổi trả dễ dàng</h3>
+                    <p className="text-primary-foreground/70 text-sm">
+                      Trong vòng 14 ngày
+                    </p>
+                  </div>
+                  <div
+                    className="animate-fade-in"
+                    style={{ animationDelay: '0.2s' }}
+                  >
+                    <div className="mb-4 text-4xl">🛡️</div>
+                    <h3 className="mb-2 text-lg font-semibold">
+                      Bảo hành chính hãng
+                    </h3>
+                    <p className="text-primary-foreground/70 text-sm">
+                      12 tháng tại Apple
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
+          </>
+        )}
       </main>
 
       <Footer />
