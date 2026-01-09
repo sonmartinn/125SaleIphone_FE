@@ -70,7 +70,7 @@ const Header: React.FC = () => {
                   className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                 >
                   Xin chào,{' '}
-                  {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                  {user?.UserName || user?.Email?.split('@')[0]}
                 </Link>
                 <button
                   onClick={handleLogout}

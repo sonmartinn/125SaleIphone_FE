@@ -30,7 +30,7 @@ const AuthPage: React.FC = () => {
   } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const from = searchParams.get('from') || '/'
+  const from = searchParams.get('from') || '/iphone'
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -51,7 +51,6 @@ const AuthPage: React.FC = () => {
         } 
 
         toast.success('Đăng nhập thành công!')
-        router.push(from)
       } else {
         if (formData.password !== formData.confirmPassword) {
           toast.error('Mật khẩu xác nhận không khớp')

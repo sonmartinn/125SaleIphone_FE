@@ -73,79 +73,49 @@ const CheckoutPage: React.FC = () => {
     }).format(price)
   }
 
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!user) return
 
+  setIsLoading(true)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
+  try {
+    const fullAddress =
+      `${shippingInfo.address}, ${shippingInfo.city}` +
+      (shippingInfo.note ? ` (${shippingInfo.note})` : '')
 
-    setIsLoading(true)
-
-    try {
-      const fullAddress = `${shippingInfo.address}, ${shippingInfo.city}${shippingInfo.note ? ` (${shippingInfo.note})` : ''}`
-
-      // Prepare order data for Laravel API
-      const orderData = {
-        user_id: user.id,
-        items: items,
-        total_amount: totalPrice,
-        shipping_address: fullAddress,
-        phone: shippingInfo.phone,
-        payment_method: paymentMethod,
-        recipient_name: shippingInfo.fullName,
-        email: user.email
-      }
-
-      console.log('Sending order data:', orderData);
-
-      // Call Laravel API
-      const result = await checkoutApi(orderData)
-      console.log('Checkout result:', result);
-
-      // 1. Handle External Payment Redirect (MoMo, VNPay, etc.)
-      if (result.payment_url) {
-        toast.info('Đang chuyển hướng đến cổng thanh toán...')
-        setTimeout(() => {
-          window.location.href = result.payment_url
-        }, 1500)
-        return // Stop further execution here
-      }
-
-      // 2. Handle Success (COD or completed payments)
-      try {
-        await sendMailApi({
-          email: user.email,
-          order_id: result.order_id || result.id || 'N/A',
-          total_amount: totalPrice,
-          items: items
-        })
-      } catch (mailError) {
-        console.error("Failed to send email:", mailError)
-      }
-
-      clearCart()
-
-      // 3. Show Bank Instructions if applicable
-      if (paymentMethod === 'bank' && result.payment_instructions) {
-        toast.success('Đặt hàng thành công!', {
-          description: 'Vui lòng thực hiện chuyển khoản theo hướng dẫn.'
-        })
-        // You might want to set a state to show instructions UI here
-        // For now, redirect to profile to see order details
-        router.push('/profile')
-      } else {
-        toast.success('Đặt hàng thành công!', {
-          description: 'Cảm ơn bạn đã mua sắm tại Apple Store'
-        })
-        router.push('/profile')
-      }
-    } catch (error: any) {
-      console.error('Error creating order:', error)
-      toast.error(error.message || 'Không thể đặt hàng. Vui lòng thử lại.')
-    } finally {
-      setIsLoading(false)
+    // ✅ DỮ LIỆU ĐÚNG BACKEND
+    const orderData = {
+      fullname: shippingInfo.fullName,   // ✅ ĐÚNG KEY
+      phone: shippingInfo.phone,          // ✅
+      address: fullAddress,               // ✅
+      payment_method: paymentMethod.toUpperCase(), // COD | BANK | MOMO
+      email: user.email
     }
+
+    console.log('Sending order data:', orderData)
+
+    const result = await checkoutApi(orderData)
+
+    // BANK / MOMO → redirect
+    if (result.data?.payment_url) {
+      toast.info('Đang chuyển hướng đến cổng thanh toán...')
+      window.location.href = result.data.payment_url
+      return
+    }
+
+    // COD
+    toast.success('Đặt hàng thành công!')
+    clearCart()
+    router.push('/orders')
+
+  } catch (error: any) {
+    console.error('Error creating order:', error)
+    toast.error(error.message || 'Không thể đặt hàng')
+  } finally {
+    setIsLoading(false)
   }
+}
 
   if (authLoading) {
     return (

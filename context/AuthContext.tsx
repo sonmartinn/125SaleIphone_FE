@@ -111,18 +111,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     password: string
   ): Promise<{ error?: string }> => {
     try {
-      await loginApi({
+      const res = await loginApi({
         Email: email,
         Password: password,
-      })
+      });
 
-      return {}
+      localStorage.setItem('access_token', res.access_token);
+
+      const profileRes: ProfileResponse = await getProfileApi();
+      setUser(profileRes.data);
+
+      return {};
     } catch (err: any) {
       return {
         error: err.message || 'Đăng nhập thất bại',
-      }
+      };
     }
-  }
+  };
+
 
   const logout = async () => {
     await logoutApi();
