@@ -105,7 +105,8 @@ export const getProductsApi = async () => {
     return await response.json();
 };
 
-
+export const getProductByIdApi = (id: string | number) =>
+  apiFetch(`/products/${id}`)
 
 export const addProductApi = (data: any) =>
   apiFetch('/products', {
@@ -113,13 +114,20 @@ export const addProductApi = (data: any) =>
     body: JSON.stringify(data),
   });
 
-export const updateProductApi = (id: number | string, data: any) =>
-  apiFetch(`/products/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+export const updateProductApi = async (id: string, payload: any) => {
+  if (!id) throw new Error('Thiếu IdProductVar')
 
-export const deleteProductApi = (id: number | string) =>
+  // route PUT chuẩn BE
+  return fetch(`http://127.0.0.1:8000/api/product-variants/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  }).then(res => res.json())
+}
+
+export const deleteProductApi = (id: string) =>
   apiFetch(`/products/${id}`, {
     method: 'DELETE',
   });

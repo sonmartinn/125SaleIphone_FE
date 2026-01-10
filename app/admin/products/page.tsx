@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ProductVariant } from '@/types/index'
 
 import {
   DropdownMenu,
@@ -58,9 +59,17 @@ export default function AdminProducts() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  const [selectedVariant, setSelectedVariant] =
+    useState<ProductVariant | null>(null)
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -114,15 +123,16 @@ export default function AdminProducts() {
   }
 
   const handleEdit = (product: Product) => {
+    console.log('EDIT PRODUCT:', product)
     setEditingProduct(product)
     setIsModalOpen(true)
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return
     try {
       await deleteProductApi(id)
-      setProducts(prev => prev.filter(p => p.id !== id))
+      setProducts(prev => prev.filter(p => p.id.toString() !== id))
       toast.success('Đã xóa sản phẩm')
     } catch {
       toast.error('Xóa sản phẩm thất bại')
@@ -238,14 +248,17 @@ export default function AdminProducts() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => handleEdit(product)}
+                            onClick={() => {
+                              setSelectedProduct(product) 
+                              setIsModalOpen(true)       
+                            }}
                           >
                             <Edit2 className="mr-2 h-4 w-4" />
                             Chỉnh sửa
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-500"
-                            onClick={() => handleDelete(product.id)}
+                            onClick={() => handleDelete(product.id.toString())}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Xóa
@@ -273,8 +286,11 @@ export default function AdminProducts() {
       {/* Modal */}
       <ProductModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        product={editingProduct}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedProduct(null)
+        }}
+        product={selectedProduct}
         onSuccess={fetchProducts}
       />
     </div>
