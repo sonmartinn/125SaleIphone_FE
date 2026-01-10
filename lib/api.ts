@@ -116,6 +116,10 @@ export const deleteProductApi = (id: number | string) =>
     method: 'DELETE',
   });
 
+export const getProductDetailApi = (id: number | string) => apiFetch(`/products/${id}`);
+
+export const getProductVariantsApi = () => apiFetch('/product_variants');
+
 // User Management
 export const getUsersApi = () => apiFetch('/users');
 

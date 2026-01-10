@@ -6,10 +6,12 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { products } from '@/data/products'
+// import { products } from '@/data/products' // Removed static import
 import { useCart } from '@/context/CartContext'
 import { toast } from 'sonner'
-import { Check, ShoppingBag } from 'lucide-react'
+import { Check, ShoppingBag, Loader2 } from 'lucide-react'
+import { getProductDetailApi } from '@/lib/api'
+import { Product } from '@/types'
 
 const ProductDetailPage: React.FC = () => {
   const params = useParams()
@@ -17,18 +19,60 @@ const ProductDetailPage: React.FC = () => {
   const router = useRouter()
   const { addToCart } = useCart()
 
-  const product = products.find(p => p.id === id)
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined)
+  const [selectedStorage, setSelectedStorage] = useState<string | undefined>(undefined)
 
-  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0])
-  const [selectedStorage, setSelectedStorage] = useState(product?.storage?.[0])
-
-  // Update state when product is found (needed because initial render might rely on strict order or wait for params)
   useEffect(() => {
-    if (product) {
-      if (!selectedColor) setSelectedColor(product.colors?.[0])
-      if (!selectedStorage) setSelectedStorage(product.storage?.[0])
+    const fetchProduct = async () => {
+      if (!id) return;
+
+      try {
+        setLoading(true)
+        // Correctly handle the API response which might be the object itself or wrapped
+        const response = await getProductDetailApi(id)
+        const data = response.data || response
+
+        const mappedProduct: Product = {
+          id: data.id?.toString() || data.IdProduct?.toString(),
+          name: data.name || data.NameProduct,
+          subtitle: data.description || data.Description || data.subtitle || '',
+          price: Number(data.price) || Number(data.PriceProduct) || 0,
+          image: data.image || data.ImageProduct,
+          category: (data.CategoryId === 1 || (data.category && data.category.includes('iphone'))) ? 'iphone' : 'accessory',
+          isNew: data.isNew || false,
+          // Use hardcoded defaults if API doesn't return colors/storage yet, or map from variants if available
+          colors: data.colors || ['Titan Tự Nhiên', 'Titan Xanh', 'Titan Trắng', 'Titan Đen'],
+          storage: data.storage || ['128GB', '256GB', '512GB', '1TB'],
+          originalPrice: data.originalPrice
+        }
+
+        setProduct(mappedProduct)
+        setSelectedColor(mappedProduct.colors?.[0])
+        setSelectedStorage(mappedProduct.storage?.[0])
+      } catch (error) {
+        console.error('Failed to fetch product:', error)
+        toast.error('Không thể tải thông tin sản phẩm')
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [product, selectedColor, selectedStorage])
+
+    fetchProduct()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex flex-1 items-center justify-center pt-12">
+          <Loader2 className="h-8 w-8 animate-spin text-apple-blue" />
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -125,11 +169,10 @@ const ProductDetailPage: React.FC = () => {
                         <button
                           key={color}
                           onClick={() => setSelectedColor(color)}
-                          className={`rounded-full border px-4 py-2 text-sm transition-all ${
-                            selectedColor === color
+                          className={`rounded-full border px-4 py-2 text-sm transition-all ${selectedColor === color
                               ? 'border-foreground bg-foreground text-primary-foreground'
                               : 'border-border hover:border-foreground'
-                          }`}
+                            }`}
                         >
                           {color}
                         </button>
@@ -152,11 +195,10 @@ const ProductDetailPage: React.FC = () => {
                         <button
                           key={storage}
                           onClick={() => setSelectedStorage(storage)}
-                          className={`rounded-full border px-4 py-2 text-sm transition-all ${
-                            selectedStorage === storage
+                          className={`rounded-full border px-4 py-2 text-sm transition-all ${selectedStorage === storage
                               ? 'border-foreground bg-foreground text-primary-foreground'
                               : 'border-border hover:border-foreground'
-                          }`}
+                            }`}
                         >
                           {storage}
                         </button>

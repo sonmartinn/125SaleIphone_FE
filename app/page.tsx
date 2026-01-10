@@ -20,18 +20,19 @@ const Index: React.FC = () => {
       try {
         setLoading(true)
         const response = await getProductsApi()
-        // Assuming API returns { value: [...], count: 3 } based on previous terminal output
-        const fetchedProducts = response.value || []
 
-        // Map backend product structure to frontend Product interface if needed
-        // Assuming backend fields: IdProduct, NameProduct, PriceProduct, ImageProduct, CategoryId
+        // Handle both direct array or wrapped in .data
+        const fetchedProducts = Array.isArray(response) ? response : (response.data || [])
+
+        // Map backend product structure to frontend Product interface
         const mappedProducts: Product[] = fetchedProducts.map((p: any) => ({
-          id: p.IdProduct?.toString() || p.id?.toString(),
-          name: p.NameProduct || p.name,
-          subtitle: p.Description || p.subtitle || '',
-          price: p.PriceProduct || p.price,
-          image: p.ImageProduct || p.image,
-          category: (p.CategoryId === 1 || p.category === 'iphone') ? 'iphone' : 'accessory',
+          id: p.id?.toString() || p.IdProduct?.toString(),
+          name: p.name || p.NameProduct,
+          subtitle: p.description || p.Description || p.subtitle || '',
+          price: Number(p.price) || Number(p.PriceProduct) || 0,
+          image: p.image || p.ImageProduct,
+          // Handle various category formats (string or ID)
+          category: (p.category?.toLowerCase().includes('iphone') || p.CategoryId === 1) ? 'iphone' : 'accessory',
           isNew: p.isNew || false,
           isFeatured: p.isFeatured || false
         }))
