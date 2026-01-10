@@ -1,12 +1,9 @@
 export interface ProductVariant {
-  IdProductVar: string;
-  IdProduct: string;
-  Color: string;
-  Price: number;
-  ImgPath: string;
-  Stock: number;
-  created_at?: string;
-  updated_at?: string;
+  IdProductVar?: string
+  Color: string
+  Price: number
+  Stock: number
+  ImgPath?: string | null
 }
 
 export interface Product {
