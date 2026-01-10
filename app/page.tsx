@@ -25,17 +25,26 @@ const Index: React.FC = () => {
         const fetchedProducts = Array.isArray(response) ? response : (response.data || [])
 
         // Map backend product structure to frontend Product interface
-        const mappedProducts: Product[] = fetchedProducts.map((p: any) => ({
-          id: p.id?.toString() || p.IdProduct?.toString(),
-          name: p.name || p.NameProduct,
-          subtitle: p.description || p.Description || p.subtitle || '',
-          price: Number(p.price) || Number(p.PriceProduct) || 0,
-          image: p.image || p.ImageProduct,
-          // Handle various category formats (string or ID)
-          category: (p.category?.toLowerCase().includes('iphone') || p.CategoryId === 1) ? 'iphone' : 'accessory',
-          isNew: p.isNew || false,
-          isFeatured: p.isFeatured || false
-        }))
+        const mappedProducts: Product[] = fetchedProducts.map((p: any) => {
+          const variant = p.variants?.length ? p.variants[0] : null
+
+          let category: 'iphone' | 'accessory' | null = null
+
+          if (p.IdCategory === '1') category = 'iphone'
+          else if (p.IdCategory === '2') category = 'accessory'
+
+          return {
+            id: String(p.IdProduct),
+            name: p.NameProduct,
+            subtitle: p.Decription || '',
+            price: Number(variant?.Price ?? 0),
+            image: variant?.ImgPath ?? '/images/default.png',
+            category,
+            isNew: false,
+            isFeatured: false
+          }
+        })
+
 
         setProducts(mappedProducts)
       } catch (err: any) {
@@ -49,7 +58,9 @@ const Index: React.FC = () => {
     fetchProducts()
   }, [])
 
-  const iphones = products.filter(p => p.category === 'iphone').slice(0, 4)
+  const iphoneProducts = products.filter(
+    p => p.category === 'iphone'
+  )
   const accessories = products.filter(p => p.category === 'accessory').slice(0, 4)
 
   return (
@@ -99,7 +110,7 @@ const Index: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                  {iphones.map(product => (
+                  {iphoneProducts.slice(0, 4).map(product => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>

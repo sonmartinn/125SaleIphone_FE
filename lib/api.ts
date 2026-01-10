@@ -97,7 +97,21 @@ export const sendMailApi = (data: any) =>
   });
 
 // Product Management
-export const getProductsApi = () => apiFetch('/products');
+export const getProductsApi = async () => {
+  const res = await fetch(`${API_URL}/products`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    cache: 'no-store' // tránh cache khi dev
+  })
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch products')
+  }
+
+  return res.json()
+}
 
 export const addProductApi = (data: any) =>
   apiFetch('/products', {
