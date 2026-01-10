@@ -24,19 +24,22 @@ const Index: React.FC = () => {
         // Handle both direct array or wrapped in .data
         const fetchedProducts = Array.isArray(response) ? response : (response.data || [])
 
+        console.log('Fetched products:', fetchedProducts)
+
         // Map backend product structure to frontend Product interface
         const mappedProducts: Product[] = fetchedProducts.map((p: any) => ({
-          id: p.id?.toString() || p.IdProduct?.toString(),
-          name: p.name || p.NameProduct,
-          subtitle: p.description || p.Description || p.subtitle || '',
-          price: Number(p.price) || Number(p.PriceProduct) || 0,
-          image: p.image || p.ImageProduct,
+          id: p.IdProduct?.toString() || p.id?.toString(),
+          name: p.NameProduct || p.name,
+          subtitle: p.Decription || p.description || p.Description || p.subtitle || '',
+          price: Number(p.PriceProduct) || Number(p.price) || 0,
+          image: p.ImageProduct || p.image,
           // Handle various category formats (string or ID)
-          category: (p.category?.toLowerCase().includes('iphone') || p.CategoryId === 1) ? 'iphone' : 'accessory',
+          category: (p.IdCategory === 1 || p.category?.toLowerCase().includes('iphone')) ? 'iphone' : 'accessory',
           isNew: p.isNew || false,
           isFeatured: p.isFeatured || false
         }))
 
+        console.log('Mapped products:', mappedProducts)
         setProducts(mappedProducts)
       } catch (err: any) {
         console.error('Error fetching products:', err)

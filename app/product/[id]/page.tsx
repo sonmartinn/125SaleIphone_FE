@@ -21,8 +21,7 @@ const ProductDetailPage: React.FC = () => {
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined)
-  const [selectedStorage, setSelectedStorage] = useState<string | undefined>(undefined)
+  const [selectedVariant, setSelectedVariant] = useState<any>(null)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -37,20 +36,20 @@ const ProductDetailPage: React.FC = () => {
         const mappedProduct: Product = {
           id: data.id?.toString() || data.IdProduct?.toString(),
           name: data.name || data.NameProduct,
-          subtitle: data.description || data.Description || data.subtitle || '',
+          subtitle: data.Decription || data.description || data.Description || data.subtitle || '',
           price: Number(data.price) || Number(data.PriceProduct) || 0,
           image: data.image || data.ImageProduct,
-          category: (data.CategoryId === 1 || (data.category && data.category.includes('iphone'))) ? 'iphone' : 'accessory',
+          category: (data.IdCategory === '1' || data.CategoryId === 1 || (data.category && data.category.includes('iphone'))) ? 'iphone' : 'accessory',
           isNew: data.isNew || false,
-          // Use hardcoded defaults if API doesn't return colors/storage yet, or map from variants if available
-          colors: data.colors || ['Titan Tự Nhiên', 'Titan Xanh', 'Titan Trắng', 'Titan Đen'],
-          storage: data.storage || ['128GB', '256GB', '512GB', '1TB'],
+          variants: data.variants || [],
           originalPrice: data.originalPrice
         }
 
         setProduct(mappedProduct)
-        setSelectedColor(mappedProduct.colors?.[0])
-        setSelectedStorage(mappedProduct.storage?.[0])
+        // Select first variant if available
+        if (mappedProduct.variants && mappedProduct.variants.length > 0) {
+          setSelectedVariant(mappedProduct.variants[0])
+        }
       } catch (error) {
         console.error('Failed to fetch product:', error)
         toast.error('Không thể tải thông tin sản phẩm')
@@ -99,9 +98,13 @@ const ProductDetailPage: React.FC = () => {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, selectedColor, selectedStorage)
+    if (!selectedVariant) {
+      toast.error('Vui lòng chọn phiên bản sản phẩm')
+      return
+    }
+    addToCart(product, selectedVariant.Color, selectedVariant.IdProductVar)
     toast.success('Đã thêm vào giỏ hàng!', {
-      description: product.name,
+      description: `${product.name} - ${selectedVariant.Color}`,
       action: {
         label: 'Xem giỏ hàng',
         onClick: () => router.push('/cart')
@@ -121,7 +124,7 @@ const ProductDetailPage: React.FC = () => {
               <div className="animate-fade-in">
                 <div className="bg-secondary flex aspect-square items-center justify-center rounded-3xl p-8">
                   <img
-                    src={product.image}
+                    src={selectedVariant?.ImgPath || product.image}
                     alt={product.name}
                     className="h-4/5 w-4/5 object-contain"
                   />
@@ -146,7 +149,7 @@ const ProductDetailPage: React.FC = () => {
                 {/* Price */}
                 <div className="mb-8 flex items-baseline gap-3">
                   <span className="text-foreground text-3xl font-semibold">
-                    {formatPrice(product.price)}
+                    {formatPrice(selectedVariant?.Price || product.price)}
                   </span>
                   {product.originalPrice && (
                     <span className="text-muted-foreground text-xl line-through">
@@ -155,52 +158,36 @@ const ProductDetailPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Color Selection */}
-                {product.colors && product.colors.length > 0 && (
+                {/* Variants Selection */}
+                {product.variants && product.variants.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-foreground mb-3 text-sm font-medium">
-                      Màu sắc:{' '}
-                      <span className="text-muted-foreground">
-                        {selectedColor}
-                      </span>
+                      Chọn phiên bản
                     </h3>
-                    <div className="flex flex-wrap gap-3">
-                      {product.colors.map(color => (
+                    <div className="space-y-3">
+                      {product.variants.map((variant) => (
                         <button
-                          key={color}
-                          onClick={() => setSelectedColor(color)}
-                          className={`rounded-full border px-4 py-2 text-sm transition-all ${selectedColor === color
-                              ? 'border-foreground bg-foreground text-primary-foreground'
+                          key={variant.IdProductVar}
+                          onClick={() => setSelectedVariant(variant)}
+                          className={`w-full rounded-lg border p-4 text-left transition-all ${
+                            selectedVariant?.IdProductVar === variant.IdProductVar
+                              ? 'border-apple-blue bg-blue-50 dark:bg-blue-950'
                               : 'border-border hover:border-foreground'
-                            }`}
+                          }`}
                         >
-                          {color}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Storage Selection */}
-                {product.storage && product.storage.length > 0 && (
-                  <div className="mb-8">
-                    <h3 className="text-foreground mb-3 text-sm font-medium">
-                      Dung lượng:{' '}
-                      <span className="text-muted-foreground">
-                        {selectedStorage}
-                      </span>
-                    </h3>
-                    <div className="flex flex-wrap gap-3">
-                      {product.storage.map(storage => (
-                        <button
-                          key={storage}
-                          onClick={() => setSelectedStorage(storage)}
-                          className={`rounded-full border px-4 py-2 text-sm transition-all ${selectedStorage === storage
-                              ? 'border-foreground bg-foreground text-primary-foreground'
-                              : 'border-border hover:border-foreground'
-                            }`}
-                        >
-                          {storage}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-foreground font-medium">
+                                {variant.Color}
+                              </div>
+                              <div className="text-muted-foreground text-sm">
+                                Kho: {variant.Stock} sản phẩm
+                              </div>
+                            </div>
+                            <div className="text-foreground font-semibold text-lg">
+                              {formatPrice(variant.Price)}
+                            </div>
+                          </div>
                         </button>
                       ))}
                     </div>
