@@ -6,7 +6,7 @@ interface CartContextType {
   addToCart: (
     product: Product,
     selectedColor?: string,
-    selectedStorage?: string
+    selectedVariantId?: string
   ) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
@@ -40,14 +40,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const addToCart = (
     product: Product,
     selectedColor?: string,
-    selectedStorage?: string
+    selectedVariantId?: string
   ) => {
     setItems(prev => {
       const existingIndex = prev.findIndex(
         item =>
           item.product.id === product.id &&
           item.selectedColor === selectedColor &&
-          item.selectedStorage === selectedStorage
+          item.selectedStorage === selectedVariantId
       )
 
       if (existingIndex > -1) {
@@ -56,7 +56,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return updated
       }
 
-      return [...prev, { product, quantity: 1, selectedColor, selectedStorage }]
+      return [...prev, { product, quantity: 1, selectedColor, selectedStorage: selectedVariantId }]
     })
   }
 

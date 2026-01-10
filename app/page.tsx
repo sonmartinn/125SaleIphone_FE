@@ -24,6 +24,8 @@ const Index: React.FC = () => {
         // Handle both direct array or wrapped in .data
         const fetchedProducts = Array.isArray(response) ? response : (response.data || [])
 
+        console.log('Fetched products:', fetchedProducts)
+
         // Map backend product structure to frontend Product interface
         const mappedProducts: Product[] = fetchedProducts.map((p: any) => {
           const variant = p.variants?.length ? p.variants[0] : null
@@ -46,6 +48,7 @@ const Index: React.FC = () => {
         })
 
 
+        console.log('Mapped products:', mappedProducts)
         setProducts(mappedProducts)
       } catch (err: any) {
         console.error('Error fetching products:', err)

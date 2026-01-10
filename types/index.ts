@@ -1,15 +1,36 @@
+export interface ProductVariant {
+  IdProductVar: string;
+  IdProduct: string;
+  Color: string;
+  Price: number;
+  ImgPath: string;
+  Stock: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Product {
-  id: string;
-  name: string;
-  subtitle: string;
-  price: number;
+  id?: string;
+  IdProduct?: string;
+  name?: string;
+  NameProduct?: string;
+  subtitle?: string;
+  Decription?: string;
+  description?: string;
+  price?: number;
+  PriceProduct?: number;
   originalPrice?: number;
-  image: string;
-  category: 'iphone' | 'accessory';
+  image?: string;
+  ImageProduct?: string;
+  category?: 'iphone' | 'accessory';
+  IdCategory?: string;
   colors?: string[];
   storage?: string[];
   isNew?: boolean;
   isFeatured?: boolean;
+  variants?: ProductVariant[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CartItem {

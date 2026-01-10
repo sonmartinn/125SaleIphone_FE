@@ -52,11 +52,24 @@ export default function AdminProducts() {
         try {
             setIsLoading(true)
             const data = await getProductsApi()
-            setProducts(Array.isArray(data) ? data : (data.data || []))
+            const productList = Array.isArray(data) ? data : (data.data || [])
+            
+            // Map backend structure to frontend structure
+            const mappedProducts = productList.map((p: any) => ({
+                id: p.IdProduct || p.id,
+                name: p.NameProduct || p.name,
+                category: p.IdCategory === 1 ? 'iPhone' : 'Phụ kiện',
+                price: Number(p.PriceProduct) || Number(p.price) || 0,
+                stock: Number(p.stock) || 0,
+                image: p.ImageProduct || p.image,
+                description: p.Decription || p.description
+            }))
+            
+            setProducts(mappedProducts)
             setError(null)
         } catch (err: any) {
-            console.error('Fetch users error:', err)
-            setError(err.message || 'Không thể tải danh sách người dùng. Vui lòng kiểm tra backend.')
+            console.error('Fetch products error:', err)
+            setError(err.message || 'Không thể tải danh sách sản phẩm. Vui lòng kiểm tra backend.')
         } finally {
             setIsLoading(false)
         }
