@@ -11,8 +11,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react'
 
 const CartPage: React.FC = () => {
-  const { items, updateQuantity, removeFromCart, totalPrice, totalItems } =
-    useCart()
+  const { items, updateQuantity, removeFromCart } = useCart()
   const { isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -25,12 +24,37 @@ const CartPage: React.FC = () => {
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      // Use query param 'from' instead of state for Next.js navigation
       router.push('/auth?from=/checkout')
     } else {
       router.push('/checkout')
     }
   }
+
+  // Debug: Log items để kiểm tra cấu trúc dữ liệu
+  console.log('🛒 Cart Items:', items)
+
+  // Tính tổng tiền và số lượng trực tiếp từ items
+  const totalPrice = items.reduce((sum, item) => {
+    // Thử nhiều cách lấy giá
+    let price = 0
+    
+    if (item.selectedVariant?.Price) {
+      price = Number(item.selectedVariant.Price)
+    } else if (item.product.price) {
+      price = Number(item.product.price)
+    } else if (item.product.variants && item.product.variants.length > 0) {
+      // Nếu có variants, lấy giá của variant đầu tiên hoặc variant có màu trùng
+      const matchingVariant = item.product.variants.find(
+        v => v.Color === item.selectedColor
+      ) || item.product.variants[0]
+      price = Number(matchingVariant.Price)
+    }
+    
+    console.log(`💰 Price for ${item.product.name}:`, price)
+    return sum + (price * item.quantity)
+  }, 0)
+
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
 
   if (items.length === 0) {
     return (
@@ -72,66 +96,127 @@ const CartPage: React.FC = () => {
             <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
               {/* Cart Items */}
               <div className="space-y-6 lg:col-span-2">
-                {items.map(item => (
-                  <div
-                    key={`${item.product.id}-${item.selectedColor}-${item.selectedStorage}`}
-                    className="apple-card flex flex-col gap-6 p-6 sm:flex-row"
-                  >
-                    {/* Image */}
-                    <div className="bg-secondary flex h-32 w-full shrink-0 items-center justify-center rounded-xl sm:w-32">
-                      <img
-                        src={item.product.image}
-                        alt={item.product.name}
-                        className="h-4/5 w-4/5 object-contain"
-                      />
-                    </div>
+                {items.map(item => {
+                  // Logic lấy giá linh hoạt
+                  let price = 0
+                  let image = item.product.image
+                  let color = item.selectedColor || ''
+                  let stock = 0
+                  
+                  // Nếu có selectedVariant
+                  if (item.selectedVariant) {
+                    price = Number(item.selectedVariant.Price) || 0
+                    image = item.selectedVariant.ImgPath || item.product.image
+                    color = item.selectedVariant.Color || color
+                    stock = item.selectedVariant.Stock || 0
+                  }
+                  // Nếu không có selectedVariant nhưng có variants array
+                  else if (item.product.variants && item.product.variants.length > 0) {
+                    const matchingVariant = item.product.variants.find(
+                      v => v.Color === item.selectedColor
+                    ) || item.product.variants[0]
+                    
+                    price = Number(matchingVariant.Price) || 0
+                    image = matchingVariant.ImgPath || item.product.image
+                    color = matchingVariant.Color || color
+                    stock = matchingVariant.Stock || 0
+                  }
+                  // Fallback về giá sản phẩm gốc
+                  else {
+                    price = Number(item.product.price) || 0
+                  }
 
-                    {/* Details */}
-                    <div className="flex-1">
-                      <h3 className="text-foreground mb-1 text-lg font-semibold">
-                        {item.product.name}
-                      </h3>
-                      <p className="text-muted-foreground mb-2 text-sm">
-                        {item.selectedColor && `${item.selectedColor}`}
-                        {item.selectedStorage && ` • ${item.selectedStorage}`}
-                      </p>
-                      <p className="text-foreground text-lg font-medium">
-                        {formatPrice(item.product.price)}
-                      </p>
-                    </div>
+                  console.log(`📱 ${item.product.name}:`, {
+                    price,
+                    image,
+                    color,
+                    hasVariant: !!item.selectedVariant,
+                    hasVariantsArray: !!item.product.variants
+                  })
 
-                    {/* Quantity & Actions */}
-                    <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
-                      <div className="border-border flex items-center gap-3 rounded-full border px-2 py-1">
+                  return (
+                    <div
+                      key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedStorage || ''}`}
+                      className="apple-card flex flex-col gap-6 p-6 sm:flex-row"
+                    >
+                      {/* Image */}
+                      <div className="bg-secondary flex h-32 w-full shrink-0 items-center justify-center rounded-xl sm:w-32">
+                        <img
+                          src={image}
+                          alt={item.product.name}
+                          className="h-4/5 w-4/5 object-contain"
+                        />
+                      </div>
+
+                      {/* Details */}
+                      <div className="flex-1">
+                        <h3 className="text-foreground mb-1 text-lg font-semibold">
+                          {item.product.name}
+                        </h3>
+                        
+                        {/* Hiển thị màu sắc và thông tin */}
+                        <div className="text-muted-foreground mb-2 text-sm">
+                          {color && <span>Màu: {color}</span>}
+                          {item.selectedStorage && <span> • {item.selectedStorage}</span>}
+                          {stock > 0 && <span> • Còn {stock} sản phẩm</span>}
+                        </div>
+
+                        {/* Giá gốc nếu có */}
+                        {item.product.originalPrice && (
+                          <p className="text-muted-foreground text-sm line-through mb-1">
+                            {formatPrice(item.product.originalPrice)}
+                          </p>
+                        )}
+
+                        {/* Giá hiện tại × số lượng */}
+                        <p className="text-foreground mb-2 text-sm">
+                          {formatPrice(price)} × {item.quantity}
+                        </p>
+
+                        {/* Tổng tiền */}
+                        <p className="text-foreground text-lg font-medium">
+                          {formatPrice(price * item.quantity)}
+                        </p>
+
+                        {/* Debug info - XÓA SAU KHI FIX */}
+                       
+                      </div>
+
+                      {/* Quantity & Actions */}
+                      <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
+                        <div className="border-border flex items-center gap-3 rounded-full border px-2 py-1">
+                          <button
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity - 1)
+                            }
+                            disabled={item.quantity <= 1}
+                            className="hover:bg-secondary rounded-full p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="w-8 text-center font-medium">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity + 1)
+                            }
+                            disabled={stock > 0 && item.quantity >= stock}
+                            className="hover:bg-secondary rounded-full p-1 transition-colors disabled:opacity-50"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
                         <button
-                          onClick={() =>
-                            updateQuantity(item.product.id, item.quantity - 1)
-                          }
-                          className="hover:bg-secondary rounded-full p-1 transition-colors"
+                          onClick={() => removeFromCart(item.product.id)}
+                          className="text-destructive hover:text-destructive/80 transition-colors"
                         >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="w-8 text-center font-medium">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() =>
-                            updateQuantity(item.product.id, item.quantity + 1)
-                          }
-                          className="hover:bg-secondary rounded-full p-1 transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
-                      <button
-                        onClick={() => removeFromCart(item.product.id)}
-                        className="text-destructive hover:text-destructive/80 transition-colors"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Summary */}
@@ -172,6 +257,7 @@ const CartPage: React.FC = () => {
                     onClick={handleCheckout}
                     className="apple-button-primary w-full"
                     size="lg"
+                    disabled={totalPrice === 0}
                   >
                     Tiến hành thanh toán
                   </Button>
