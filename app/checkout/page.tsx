@@ -10,14 +10,12 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Loader2, CreditCard, Banknote, Smartphone } from 'lucide-react'
-import { checkoutApi, sendMailApi } from '@/lib/api'
 
 const CheckoutPage: React.FC = () => {
-  const { items, totalPrice, clearCart } = useCart()
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { items, clearCart } = useCart()
+  const { isAuthenticated, token } = useAuth()
   const router = useRouter()
 
   const [isLoading, setIsLoading] = useState(false)
@@ -30,39 +28,76 @@ const CheckoutPage: React.FC = () => {
     note: ''
   })
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
+  // Tính tổng tiền từ items
+  const totalPrice = items.reduce((sum, item) => {
+    let price = 0
+    if (item.selectedVariant?.Price) {
+      price = Number(item.selectedVariant.Price)
+    } else if (item.product.variants && item.product.variants.length > 0) {
+      const matchingVariant = item.product.variants.find(
+        v => v.Color === item.selectedColor
+      ) || item.product.variants[0]
+      price = Number(matchingVariant.Price)
+    } else {
+      price = Number(item.product.price)
+    }
+    return sum + (price * item.quantity)
+  }, 0)
+
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
+
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push('/auth?from=/checkout')
+      return
     }
-  }, [authLoading, isAuthenticated, router])
+    fetchProfile()
+  }, [isAuthenticated])
 
   useEffect(() => {
-    if (user) {
-      fetchProfile()
+    if (items.length === 0 && isAuthenticated) {
+      router.push('/cart')
     }
-  }, [user])
+  }, [items, isAuthenticated])
 
+  // Fetch profile với Accept JSON
   const fetchProfile = async () => {
-    if (!user) return
+    if (!token) return
+
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      const response = await fetch(`${API_URL}/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' // <-- thêm dòng này
+        },
+      })
 
-      if (error && error.code !== 'PGRST116') throw error
+      if (!response.ok) {
+        console.warn('Profile endpoint not available:', response.status)
+        return
+      }
 
-      if (data) {
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Profile response is not JSON')
+        return
+      }
+
+      const data = await response.json()
+      
+      if (data.user) {
         setShippingInfo(prev => ({
           ...prev,
-          fullName: data.full_name || '',
-          phone: data.phone || '',
-          address: data.address || ''
+          fullName: data.user.FullName || data.user.name || '',
+          phone: data.user.PhoneNumber || '',
+          address: data.user.Address || ''
         }))
       }
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.warn('Could not fetch profile:', error)
     }
   }
 
@@ -73,51 +108,101 @@ const CheckoutPage: React.FC = () => {
     }).format(price)
   }
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!user) return
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-  setIsLoading(true)
-
-  try {
-    const fullAddress =
-      `${shippingInfo.address}, ${shippingInfo.city}` +
-      (shippingInfo.note ? ` (${shippingInfo.note})` : '')
-
-    // ✅ DỮ LIỆU ĐÚNG BACKEND
-    const orderData = {
-      fullname: shippingInfo.fullName,   // ✅ ĐÚNG KEY
-      phone: shippingInfo.phone,          // ✅
-      address: fullAddress,               // ✅
-      payment_method: paymentMethod.toUpperCase(), // COD | BANK | MOMO
-      email: user.email
-    }
-
-    console.log('Sending order data:', orderData)
-
-    const result = await checkoutApi(orderData)
-
-    // BANK / MOMO → redirect
-    if (result.data?.payment_url) {
-      toast.info('Đang chuyển hướng đến cổng thanh toán...')
-      window.location.href = result.data.payment_url
+    if (items.length === 0) {
+      toast.error('Giỏ hàng trống')
       return
     }
 
-    // COD
-    toast.success('Đặt hàng thành công!')
-    clearCart()
-    router.push('/orders')
+    if (!token) {
+      toast.error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.')
+      router.push('/auth?from=/checkout')
+      return
+    }
 
-  } catch (error: any) {
-    console.error('Error creating order:', error)
-    toast.error(error.message || 'Không thể đặt hàng')
-  } finally {
-    setIsLoading(false)
+    setIsLoading(true)
+
+    try {
+      const fullAddress = `${shippingInfo.address}, ${shippingInfo.city}` +
+        (shippingInfo.note ? ` (${shippingInfo.note})` : '')
+
+      const orderData = {
+        fullname: shippingInfo.fullName,
+        phone: shippingInfo.phone,
+        address: fullAddress,
+        payment_method: paymentMethod.toUpperCase(),
+        items: items.map(item => ({
+          IdProduct: item.product.id,
+          Quantity: item.quantity,
+          Price: item.selectedVariant?.Price || item.product.price
+        }))
+      }
+
+      console.log('📦 Sending order:', orderData)
+
+      const response = await fetch(`${API_URL}/checkout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      })
+
+      const contentType = response.headers.get('content-type')
+      
+      if (!response.ok) {
+        // Nếu token hết hạn hoặc không hợp lệ
+        if (response.status === 401) {
+          localStorage.removeItem('access_token')
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+          router.push('/auth?from=/checkout')
+          setIsLoading(false)
+          return
+        }
+
+        let errorMessage = 'Không thể đặt hàng'
+        
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorMessage
+        } else {
+          const text = await response.text()
+          console.error('API returned HTML:', text.substring(0, 200))
+          errorMessage = `Lỗi hệ thống (${response.status}). Vui lòng kiểm tra API endpoint.`
+        }
+        
+        throw new Error(errorMessage)
+      }
+
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('API không trả về JSON. Kiểm tra Laravel routes.')
+      }
+
+      const result = await response.json()
+
+      if (result.data?.payment_url) {
+        toast.info('Đang chuyển hướng đến cổng thanh toán...')
+        window.location.href = result.data.payment_url
+        return
+      }
+
+      toast.success('Đặt hàng thành công!')
+      clearCart()
+      router.push('/orders')
+
+    } catch (error: any) {
+      console.error('❌ Checkout error:', error)
+      toast.error(error.message || 'Không thể đặt hàng')
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
 
-  if (authLoading) {
+  if (!isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
@@ -126,14 +211,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 
   if (items.length === 0) {
-    // Only redirect if not already redirecting for auth
-    if (isAuthenticated || !authLoading) {
-      // Adding a small delay or check to avoid conflict? No, should be fine.
-      // But better to wrap in useEffect to avoid state update during render if strictly following React rules
-    }
-    // We can return null and redirect in useEffect, but for simplicity:
-    // If returning null/redirecting here, it causes issues during render.
-    // Better to handle in useEffect.
+    return null
   }
 
   return (
@@ -253,10 +331,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                       <div className="space-y-4">
                         <label
                           htmlFor="cod"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'cod'
-                            ? 'border-foreground bg-secondary'
-                            : 'border-border hover:border-foreground/50'
-                            }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
+                            paymentMethod === 'cod'
+                              ? 'border-foreground bg-secondary'
+                              : 'border-border hover:border-foreground/50'
+                          }`}
                         >
                           <RadioGroupItem value="cod" id="cod" />
                           <Banknote className="text-muted-foreground h-6 w-6" />
@@ -272,10 +351,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                         <label
                           htmlFor="bank"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'bank'
-                            ? 'border-foreground bg-secondary'
-                            : 'border-border hover:border-foreground/50'
-                            }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
+                            paymentMethod === 'bank'
+                              ? 'border-foreground bg-secondary'
+                              : 'border-border hover:border-foreground/50'
+                          }`}
                         >
                           <RadioGroupItem value="bank" id="bank" />
                           <CreditCard className="text-muted-foreground h-6 w-6" />
@@ -291,10 +371,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                         <label
                           htmlFor="momo"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'momo'
-                            ? 'border-foreground bg-secondary'
-                            : 'border-border hover:border-foreground/50'
-                            }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
+                            paymentMethod === 'momo'
+                              ? 'border-foreground bg-secondary'
+                              : 'border-border hover:border-foreground/50'
+                          }`}
                         >
                           <RadioGroupItem value="momo" id="momo" />
                           <Smartphone className="text-muted-foreground h-6 w-6" />
@@ -321,31 +402,39 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                     {/* Items */}
                     <div className="mb-6 space-y-4">
-                      {items.map(item => (
-                        <div
-                          key={`${item.product.id}-${item.selectedColor}-${item.selectedStorage}`}
-                          className="flex gap-4"
-                        >
-                          <div className="bg-secondary flex h-16 w-16 shrink-0 items-center justify-center rounded-lg">
-                            <img
-                              src={item.product.image}
-                              alt={item.product.name}
-                              className="h-12 w-12 object-contain"
-                            />
+                      {items.map(item => {
+                        const price = item.selectedVariant?.Price || 
+                          (item.product.variants?.find(v => v.Color === item.selectedColor)?.Price) ||
+                          item.product.price
+                        const image = item.selectedVariant?.ImgPath || item.product.image
+
+                        return (
+                          <div
+                            key={`${item.product.id}-${item.selectedColor}-${item.selectedStorage}`}
+                            className="flex gap-4"
+                          >
+                            <div className="bg-secondary flex h-16 w-16 shrink-0 items-center justify-center rounded-lg">
+                              <img
+                                src={image}
+                                alt={item.product.name}
+                                className="h-12 w-12 object-contain"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-foreground line-clamp-1 text-sm font-medium">
+                                {item.product.name}
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {item.selectedColor && `${item.selectedColor} • `}
+                                SL: {item.quantity}
+                              </p>
+                              <p className="text-foreground text-sm font-medium">
+                                {formatPrice(Number(price) * item.quantity)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="text-foreground line-clamp-1 text-sm font-medium">
-                              {item.product.name}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              SL: {item.quantity}
-                            </p>
-                            <p className="text-foreground text-sm font-medium">
-                              {formatPrice(item.product.price * item.quantity)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
 
                     <div className="border-border mb-6 space-y-3 border-t pt-4">
@@ -377,7 +466,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       type="submit"
                       className="apple-button-primary w-full"
                       size="lg"
-                      disabled={isLoading}
+                      disabled={isLoading || items.length === 0}
                     >
                       {isLoading ? (
                         <>

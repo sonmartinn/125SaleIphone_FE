@@ -20,6 +20,7 @@ interface IUser {
 
 interface AuthContextType {
   user: any;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   register: (
@@ -44,22 +45,27 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Auto login nếu có token
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    const t = localStorage.getItem('access_token');
+    if (!t) {
       setIsLoading(false);
+      setToken(null);
       return;
     }
 
-  getProfileApi()
+    setToken(t);
+
+    getProfileApi()
       .then((res: ProfileResponse) => {
         setUser(res.data);
       })
       .catch(() => {
         localStorage.removeItem('access_token');
+        setToken(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -117,6 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       localStorage.setItem('access_token', res.access_token);
+      setToken(res.access_token);
 
       const profileRes: ProfileResponse = await getProfileApi();
       setUser(profileRes.data);
@@ -133,6 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     await logoutApi();
     localStorage.removeItem('access_token');
+    setToken(null);
     setUser(null);
   };
 
@@ -140,6 +148,7 @@ return (
   <AuthContext.Provider
       value={{
         user,
+        token,
         isAuthenticated: !!user,
         isLoading,
         register,
