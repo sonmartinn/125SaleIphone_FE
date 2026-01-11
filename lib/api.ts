@@ -77,7 +77,7 @@ export const deleteUserApi = (id: string | number) => apiFetch(`/users/${id}`, {
 export const updateUserRoleApi = (idUser: string, role: string) =>
   apiFetch(`/users/${idUser}/role`, {
     method: 'PUT',
-    body: { Role: role },
+    body: JSON.stringify({ Role: role }),
   });
 
 /* ================= ORDER MANAGEMENT ================= */
