@@ -20,7 +20,6 @@ interface IUser {
 
 interface AuthContextType {
   user: any;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   token: string | null;
@@ -51,24 +50,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Auto login nếu có token
   useEffect(() => {
-<<<<<<< HEAD
-    const t = localStorage.getItem('access_token');
-    if (!t) {
-=======
     const storedToken = localStorage.getItem('access_token');
     if (!storedToken) {
->>>>>>> restore-2h
       setIsLoading(false);
       setToken(null);
       return;
     }
 
-<<<<<<< HEAD
-    setToken(t);
-
-=======
     setToken(storedToken);
->>>>>>> restore-2h
+
     getProfileApi()
       .then((res: ProfileResponse) => {
         setUser(res.data);
@@ -162,7 +152,6 @@ return (
         token,
         isAuthenticated: !!user,
         isLoading,
-        token,
         register,
         verifyEmail,
         resendCode,
