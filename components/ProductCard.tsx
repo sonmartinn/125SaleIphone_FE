@@ -8,7 +8,8 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined) => {
+    if (price === undefined) return 'N/A'
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'

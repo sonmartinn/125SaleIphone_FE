@@ -127,7 +127,7 @@ export default function AdminProducts() {
     // Chuyển Product sang ProductForm
     const productForm: ProductForm = {
       IdProduct: product.IdProduct,
-      IdCategory: product.IdCategory || '01', // đảm bảo không undefined
+      IdCategory: product.IdCategory || '01',
       NameProduct: product.NameProduct,
       Decription: product.Decription || '',
       variants: product.variants?.map(v => ({
