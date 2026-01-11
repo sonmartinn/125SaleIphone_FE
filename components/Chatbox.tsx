@@ -135,21 +135,21 @@ class SmartChatbotEngine {
 
         // 0. Purchase Intent
         if (intent === 'purchase') {
-            if (entities.includes('iphone16Pro')) {
+            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
                 return {
-                    text: `Tuyệt vời! iPhone 16 Pro là sự lựa chọn đẳng cấp nhất. Bạn có muốn mình hỗ trợ **đặt hàng online** giao tận nhà trong 2h, hay bạn muốn ghé cửa hàng trải nghiệm trước? 🛍️`,
-                    suggestions: ['Đặt hàng online', 'Tìm cửa hàng gần nhất', 'Tư vấn thêm về trả góp']
+                    text: `Tuyệt vời! **iPhone 16 Pro Max** là đỉnh cao công nghệ hiện nay. Bạn muốn mình hỗ trợ **đặt hàng online** giao siêu tốc 2h hay muốn ghé showroom trải nghiệm "siêu phẩm" này? 🛍️`,
+                    suggestions: ['Đặt hàng online ngay', 'Tìm cửa hàng gần nhất', 'Tư vấn trả góp 0%']
                 }
             }
             if (entities.includes('iphone16')) {
                 return {
-                    text: `iPhone 16 bản tiêu chuẩn đang rất "hot" với bảng màu trẻ trung. Bạn đã chọn được màu nào chưa? Mình có thể giúp bạn làm thủ tục giữ hàng ngay! ✨`,
-                    suggestions: ['Xem bảng màu 16', 'Làm thủ tục mua ngay', 'Có quà tặng gì không?']
+                    text: `iPhone 16 bản tiêu chuẩn đang rất "hot". Bạn muốn đặt màu nào để mình giữ hàng cho bạn ngay? ✨`,
+                    suggestions: ['Chọn màu Ultramarine', 'Làm thủ tục mua ngay', 'Có quà tặng gì không?']
                 }
             }
             return {
-                text: `Rất vui khi bạn quan tâm đến sản phẩm của chúng tôi! Bạn đang muốn "chốt" model nào để mình kiểm tra kho và báo giá chính xác nhất? 🍎`,
-                suggestions: ['iPhone 16 Pro Max', 'iPhone 16 bản thường', 'Phụ kiện Apple']
+                text: `Rất vui khi bạn quan tâm! Bạn đang muốn "chốt" model nào? Mình khuyên bạn nên chọn **iPhone 16 Pro Max** để có trải nghiệm tốt nhất! 🍎`,
+                suggestions: ['Chốt 16 Pro Max', 'Xem iPhone 16 thường', 'Phụ kiện Apple']
             }
         }
 
@@ -187,46 +187,46 @@ class SmartChatbotEngine {
 
         // 5. Product Price & Details
         if (intent === 'price') {
-            if (entities.includes('iphone16Pro')) {
+            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
                 return {
-                    text: `**Bảng giá iPhone 16 Pro/Pro Max:**\n\n• 16 Pro: Từ **28.990.000đ**\n• 16 Pro Max: Từ **34.990.000đ**\n\nGiá bán có thể thấp hơn nếu bạn áp dụng voucher hoặc Thu cũ đổi mới lên đến 2 triệu đồng! 💸`,
-                    suggestions: ['Xem các màu', 'So sánh Specs', 'Tính góp 12 tháng']
+                    text: `💰 **Giá iPhone 16 Pro Max (Niêm yết):**\n\n• 256GB: **34.990.000đ**\n• 512GB: **40.990.000đ**\n• 1TB: **46.990.000đ**\n\n🎁 *Ưu đãi:* Giảm thêm 2 triệu khi Thu cũ đổi mới và giảm 500k qua cổng thanh toán!`,
+                    suggestions: ['Tính giá trả góp', 'Xem các màu', 'So sánh Specs']
                 }
             }
             if (entities.includes('iphone16')) {
                 return {
-                    text: `**iPhone 16 Series giá cực tốt:**\n\n• iPhone 16: Chỉ từ **22.990.000đ**\n• iPhone 16 Plus: Chỉ từ **25.990.000đ**\n\nMẫu này đang có sẵn rất nhiều màu đẹp! Bạn muốn mình tư vấn màu không? 🌈`,
+                    text: `**iPhone 16 Series giá cực tốt:**\n\n• iPhone 16: Chỉ từ **22.990.000đ**\n• iPhone 16 Plus: Chỉ từ **25.990.000đ**\n\nBạn muốn mình báo giá cụ thể theo dung lượng không? 🌈`,
                     suggestions: ['Bảng màu mới 16', 'Pin dùng bao lâu?', 'Mua kèm phụ kiện']
                 }
             }
         }
 
-        // 5.1 Color Consultation (New/Improved)
+        // 5.1 Color Consultation (Thêm chi tiết 16 Pro Max)
         if (intent === 'color') {
-            if (entities.includes('iphone16Pro')) {
+            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
                 return {
-                    text: `🎨 **Bảng màu iPhone 16 Pro/Pro Max:**\n\n• **Titan Sa Mạc (Desert Titanium):** Màu HOT nhất năm nay, sang trọng và độc bản.\n• **Titan Tự Nhiên:** Đẳng cấp, bền bỉ qua thời gian.\n• **Titan Trắng & Titan Đen:** Hai màu cơ bản nhưng cực kỳ tinh tế.\n\nBạn thích sự nổi bật của Titan Sa Mạc hay vẻ tối giản của Titan Đen?`,
-                    suggestions: ['Xem ảnh Titan Sa Mạc', 'Giá bản Titan Đen', 'So sánh với 16 thường']
+                    text: `🎨 **Bảng màu iPhone 16 Pro Max cực sang:**\n\n• **Titan Sa Mạc (Desert Titanium):** Màu HOT nhất, thanh lịch và quyền lực.\n• **Titan Tự Nhiên:** Đẳng cấp, bền bỉ qua thời gian.\n• **Titan Trắng & Titan Đen:** Hai màu cơ bản không bao giờ lỗi mốt.\n\nBạn thích sự nổi bật của Titan Sa Mạc hay vẻ tối giản của Titan Đen?`,
+                    suggestions: ['Đặt Titan Sa Mạc', 'Xem Titan Tự Nhiên', 'Giá bản Titan Đen']
                 }
             }
             if (entities.includes('iphone16')) {
                 return {
-                    text: `🌈 **Bảng màu iPhone 16/16 Plus cực trẻ trung:**\n\n• **Ultramarine:** Xanh dương đậm mới lạ, cực kỳ bắt mắt.\n• **Teal:** Xanh lục dịu nhẹ, thanh lịch.\n• **Pink:** Hồng pastel ngọt ngào.\n• **White & Black:** Luôn là lựa chọn an toàn và sạch sẽ.\n\nHiện tại màu **Ultramarine** đang là xu hướng đó! Bạn thấy sao?`,
-                    suggestions: ['Đặt màu Ultramarine', 'Xem màu Pink', 'Tính trả góp máy này']
+                    text: `🌈 **Bảng màu iPhone 16/16 Plus:**\n\n• **Ultramarine:** Xanh dương đậm mới lạ, cực kỳ bắt mắt.\n• **Teal:** Xanh lục dịu nhẹ.\n• **Pink:** Hồng pastel.\n• **White & Black:** Tối giản.\n\nBạn thấy màu nào hợp với mình nhất?`,
+                    suggestions: ['Lấy màu Ultramarine', 'Xem màu Pink', 'Tính trả góp']
                 }
             }
             return {
-                text: 'Bạn muốn mình tư vấn màu sắc cho dòng máy nào? iPhone 16 Pro sang trọng với khung Titan hay iPhone 16 trẻ trung với nhiều lựa chọn màu sắc? 🎨',
-                suggestions: ['Màu iPhone 16 Pro', 'Màu iPhone 16 thường']
+                text: 'Bạn muốn mình tư vấn màu sắc cho dòng máy nào? iPhone 16 Pro Max sang trọng hay iPhone 16 trẻ trung? 🎨',
+                suggestions: ['Màu 16 Pro Max', 'Màu 16 thường']
             }
         }
 
         // 6. Battery info
         if (intent === 'battery') {
-            if (entities.includes('iphone16Pro')) {
+            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
                 return {
-                    text: `🔋 **Thời lượng Pin iPhone 16 Pro Max:**\n\nXem video lên đến **33 giờ** - Trâu nhất lịch sử iPhone! Bản 16 Pro cũng đạt 27 giờ. Cả hai đều hỗ trợ sạc MagSafe 25W mới rất nhanh.`,
-                    suggestions: ['Sạc có kèm máy không?', 'Mua củ sạc 30W', 'Pin bản thường thì sao?']
+                    text: `🔋 **Pin iPhone 16 Pro Max đỉnh nhất lịch sử:**\n\nThời lượng xem video lên đến **33 giờ**, thoải mái sử dụng hơn 2 ngày với các tác vụ thông thường. Sạc MagSafe cũng nhanh hơn (lên đến 25W).`,
+                    suggestions: ['Sạc 2h đầy không?', 'Mua củ sạc 30W', 'Pin bản thường thì sao?']
                 }
             }
             return {
@@ -235,12 +235,12 @@ class SmartChatbotEngine {
             }
         }
 
-        // 7. Feature/Spec info
-        if (intent === 'features') {
-            if (entities.includes('iphone16Pro')) {
+        // 7. Feature/Spec info & Camera
+        if (intent === 'features' || intent === 'camera') {
+            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
                 return {
-                    text: `🌟 **Apple Intelligence** là tâm điểm của iPhone 16 Pro, giúp bạn tóm tắt văn bản, tạo Genmoji và Siri thông minh hơn. Ngoài ra Nút **Camera Control** giúp bạn điều chỉnh tiêu cự, zoom chỉ bằng cách lướt ngón tay!`,
-                    suggestions: ['Camera Control dùng sao?', 'Chip A18 Pro mạnh không?', 'Màn hình 120Hz']
+                    text: `📸 **Hệ thống Camera & Tính năng 16 Pro Max:**\n\n• **Camera chính 48MP Fusion:** Chụp ảnh không độ trễ.\n• **Telephoto 5x:** Zoom xa cực nét (độc quyền dòng Pro).\n• **Nút Camera Control:** Trượt để zoom, nhấn để chụp như máy ảnh cơ.\n• **Chip A18 Pro:** Chiến mọi game AAA mượt mà.\n• **Màn hình 6.9 inch:** Khổng lồ với viền mỏng nhất từ trước đến nay.`,
+                    suggestions: ['Xem video mẫu', 'Đập hộp 16 Pro Max', 'Giá bản 256GB']
                 }
             }
         }
