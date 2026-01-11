@@ -72,7 +72,8 @@ export const getProductVariantsApi = () => apiFetch('/product_variants');
 
 /* ================= USER MANAGEMENT ================= */
 export const getUsersApi = () => apiFetch('/users');
-export const updateUserApi = (id: string | number, data: any) => apiFetch(`/users/${id}`, { method: 'PUT', body: data });
+export const updateUserApi = (id: string | number, data: any) =>
+  apiFetch(`/users/${id}`, { method: 'PUT', body: data });
 export const deleteUserApi = (id: string | number) => apiFetch(`/users/${id}`, { method: 'DELETE' });
 export const updateUserRoleApi = (idUser: string, role: string) =>
   apiFetch(`/users/${idUser}/role`, {
