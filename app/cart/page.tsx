@@ -35,31 +35,19 @@ const CartPage: React.FC = () => {
 
   // Tính tổng tiền và số lượng trực tiếp từ items
   const totalPrice = items.reduce((sum, item) => {
-    // Thử nhiều cách lấy giá
     let price = 0
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> restore-2h
     if (item.selectedVariant?.Price) {
       price = Number(item.selectedVariant.Price)
     } else if (item.product.price) {
       price = Number(item.product.price)
     } else if (item.product.variants && item.product.variants.length > 0) {
-      // Nếu có variants, lấy giá của variant đầu tiên hoặc variant có màu trùng
-      const matchingVariant = item.product.variants.find(
-        v => v.Color === item.selectedColor
-      ) || item.product.variants[0]
+      const matchingVariant =
+        item.product.variants.find(v => v.Color === item.selectedColor) ||
+        item.product.variants[0]
       price = Number(matchingVariant.Price)
     }
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> restore-2h
     console.log(`💰 Price for ${item.product.name}:`, price)
-    return sum + (price * item.quantity)
+    return sum + price * item.quantity
   }, 0)
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -105,48 +93,12 @@ const CartPage: React.FC = () => {
               {/* Cart Items */}
               <div className="space-y-6 lg:col-span-2">
                 {items.map(item => {
-                  // Logic lấy giá linh hoạt
                   let price = 0
                   let image = item.product.image
                   let color = item.selectedColor || ''
                   let stock = 0
-<<<<<<< HEAD
-                  
-                  // Nếu có selectedVariant
-                  if (item.selectedVariant) {
-                    price = Number(item.selectedVariant.Price) || 0
-                    image = item.selectedVariant.ImgPath || item.product.image
-                    color = item.selectedVariant.Color || color
-                    stock = item.selectedVariant.Stock || 0
-                  }
-                  // Nếu không có selectedVariant nhưng có variants array
-                  else if (item.product.variants && item.product.variants.length > 0) {
-                    const matchingVariant = item.product.variants.find(
-                      v => v.Color === item.selectedColor
-                    ) || item.product.variants[0]
-                    
-                    price = Number(matchingVariant.Price) || 0
-                    image = matchingVariant.ImgPath || item.product.image
-                    color = matchingVariant.Color || color
-                    stock = matchingVariant.Stock || 0
-                  }
-                  // Fallback về giá sản phẩm gốc
-                  else {
-                    price = Number(item.product.price) || 0
-                  }
-
-                  console.log(`📱 ${item.product.name}:`, {
-                    price,
-                    image,
-                    color,
-                    hasVariant: !!item.selectedVariant,
-                    hasVariantsArray: !!item.product.variants
-                  })
-
-                  return (
-                    <div
-                      key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedStorage || ''}`}
-=======
+                  const productId =
+                    item.product.id || (item.product as any).IdProduct || ''
 
                   // Nếu có selectedVariant
                   if (item.selectedVariant) {
@@ -157,9 +109,9 @@ const CartPage: React.FC = () => {
                   }
                   // Nếu không có selectedVariant nhưng có variants array
                   else if (item.product.variants && item.product.variants.length > 0) {
-                    const matchingVariant = item.product.variants.find(
-                      v => v.Color === item.selectedColor
-                    ) || item.product.variants[0]
+                    const matchingVariant =
+                      item.product.variants.find(v => v.Color === item.selectedColor) ||
+                      item.product.variants[0]
 
                     price = Number(matchingVariant.Price) || 0
                     image = matchingVariant.ImgPath || item.product.image
@@ -178,13 +130,10 @@ const CartPage: React.FC = () => {
                     hasVariant: !!item.selectedVariant,
                     hasVariantsArray: !!item.product.variants
                   })
-
-                  const productId = item.product.id || (item.product as any).IdProduct || ''
 
                   return (
                     <div
                       key={`${productId}-${item.selectedColor || ''}-${item.selectedStorage || ''}`}
->>>>>>> restore-2h
                       className="apple-card flex flex-col gap-6 p-6 sm:flex-row"
                     >
                       {/* Image */}
@@ -201,11 +150,7 @@ const CartPage: React.FC = () => {
                         <h3 className="text-foreground mb-1 text-lg font-semibold">
                           {item.product.name}
                         </h3>
-<<<<<<< HEAD
-                        
-=======
 
->>>>>>> restore-2h
                         {/* Hiển thị màu sắc và thông tin */}
                         <div className="text-muted-foreground mb-2 text-sm">
                           {color && <span>Màu: {color}</span>}
@@ -229,26 +174,13 @@ const CartPage: React.FC = () => {
                         <p className="text-foreground text-lg font-medium">
                           {formatPrice(price * item.quantity)}
                         </p>
-
-                        {/* Debug info - XÓA SAU KHI FIX */}
-<<<<<<< HEAD
-                       
-=======
-
->>>>>>> restore-2h
                       </div>
 
                       {/* Quantity & Actions */}
                       <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
                         <div className="border-border flex items-center gap-3 rounded-full border px-2 py-1">
                           <button
-                            onClick={() =>
-<<<<<<< HEAD
-                              updateQuantity(item.product.id, item.quantity - 1)
-=======
-                              updateQuantity(productId, item.quantity - 1)
->>>>>>> restore-2h
-                            }
+                            onClick={() => updateQuantity(productId, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                             className="hover:bg-secondary rounded-full p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -258,13 +190,7 @@ const CartPage: React.FC = () => {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() =>
-<<<<<<< HEAD
-                              updateQuantity(item.product.id, item.quantity + 1)
-=======
-                              updateQuantity(productId, item.quantity + 1)
->>>>>>> restore-2h
-                            }
+                            onClick={() => updateQuantity(productId, item.quantity + 1)}
                             disabled={stock > 0 && item.quantity >= stock}
                             className="hover:bg-secondary rounded-full p-1 transition-colors disabled:opacity-50"
                           >
@@ -272,11 +198,7 @@ const CartPage: React.FC = () => {
                           </button>
                         </div>
                         <button
-<<<<<<< HEAD
-                          onClick={() => removeFromCart(item.product.id)}
-=======
                           onClick={() => removeFromCart(productId)}
->>>>>>> restore-2h
                           className="text-destructive hover:text-destructive/80 transition-colors"
                         >
                           <Trash2 className="h-5 w-5" />
