@@ -2,26 +2,35 @@
 
 import React, { useState, useEffect } from 'react'
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { addProductApi, updateProductApi } from '@/lib/api';
+import { addProductApi, updateVariantApi } from '@/lib/api'
+
+interface Variant {
+  IdProductVar?: string
+  Color: string
+  Price: number | string
+  Stock: number | string
+  ImgPath: string
+}
+
+interface ProductForm {
+  IdProduct: string
+  IdCategory: string
+  NameProduct: string
+  Decription: string
+  variants: Variant[]
+}
 
 interface ProductModalProps {
   isOpen: boolean
@@ -30,14 +39,22 @@ interface ProductModalProps {
   onSuccess: () => void
 }
 
-export default function ProductModal({ isOpen, onClose, product, onSuccess }: ProductModalProps) {
-    const [step, setStep] = useState(1)
-    const [formData, setFormData] = useState({
-        IdProduct: '',
-        IdProductVar: '',
-        NameProduct: '',
-        Decription: '',
-        IdCategory: '1', // default 1 = điện thoại
+export default function ProductModal({
+  isOpen,
+  onClose,
+  product,
+  onSuccess
+}: ProductModalProps) {
+
+  const [isLoading, setIsLoading] = useState(false)
+
+  const emptyForm: ProductForm = {
+    IdProduct: '',
+    IdCategory: '01', // default Điện thoại
+    NameProduct: '',
+    Decription: '',
+    variants: [
+      {
         Color: '',
         Price: 0,
         Stock: 0,
@@ -48,198 +65,194 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }: Pr
 
   const [formData, setFormData] = useState<ProductForm>(emptyForm)
 
-    useEffect(() => {
-        if (product) {
-            const variant = product.variants?.[0] || {}
-            setFormData({
-                IdProduct: product.IdProduct || '',
-                IdProductVar: variant.IdProductVar || '',
-                NameProduct: product.NameProduct || '',
-                Decription: product.Decription || '',
-                IdCategory: product.IdCategory || '1',
-                Color: variant.Color || '',
-                Price: variant.Price?.toString() || '',
-                Stock: variant.Stock?.toString() || '',
-                ImgPath: variant.ImgPath || ''
-            })
-        } else {
-            setFormData({
-                IdProduct: '',
-                IdProductVar: '',
-                NameProduct: '',
-                Decription: '',
-                IdCategory: '1',
-                Color: '',
-                Price: '',
-                Stock: '',
-                ImgPath: ''
-            })
-        }
-        setStep(1)
-    }, [product, isOpen])
+  // Load dữ liệu khi edit
+  useEffect(() => {
+    if (!isOpen) return
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+    if (product) {
+      setFormData({
+        IdProduct: product.IdProduct ?? '',
+        IdCategory: product.IdCategory ?? '01',
+        NameProduct: product.NameProduct ?? '',
+        Decription: product.Decription ?? '',
+        variants: product.variants?.length
+          ? product.variants.map((v: any) => ({
+              IdProductVar: v.IdProductVar ?? undefined,
+              Color: v.Color ?? '',
+              Price: v.Price ?? 0,
+              Stock: v.Stock ?? 0,
+              ImgPath: v.ImgPath ?? ''
+            }))
+          : [{
+              Color: '',
+              Price: 0,
+              Stock: 0,
+              ImgPath: ''
+            }]
+      })
+    } else {
+      setFormData(emptyForm)
+    }
+  }, [product, isOpen])
+
+  // Handle input
+  const handleChange = (field: keyof ProductForm, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleVariantChange = (index: number, field: keyof Variant, value: any) => {
+    const newVariants = [...formData.variants]
+    newVariants[index][field] = value
+    setFormData(prev => ({ ...prev, variants: newVariants }))
+  }
+
+  // Submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Kiểm tra dữ liệu
+    const firstVariant = formData.variants[0]
+    if (!firstVariant.Color || !firstVariant.Price || !firstVariant.Stock) {
+      toast.error('Vui lòng nhập đầy đủ màu, giá và số lượng cho variant')
+      return
     }
 
-    const handleNext = () => {
-        if (!formData.NameProduct.trim() || !formData.IdCategory.trim()) {
-            toast.error('Vui lòng nhập tên sản phẩm và chọn loại')
-            return
+    try {
+      setIsLoading(true)
+
+      if (product && firstVariant.IdProductVar) {
+        // UPDATE variant
+        const data = new FormData()
+        data.append('Decription', formData.Decription)
+        data.append('Price', firstVariant.Price.toString())
+        data.append('Stock', firstVariant.Stock.toString())
+        data.append('ImgPath', firstVariant.ImgPath)
+
+        await updateVariantApi(formData.IdProduct, firstVariant.IdProductVar, data)
+        toast.success('Cập nhật sản phẩm thành công')
+      } else {
+        // ADD new product
+        const payload: any = {
+          IdCategory: formData.IdCategory,
+          NameProduct: formData.NameProduct,
+          Decription: formData.Decription,
+          variants: formData.variants.map(v => ({
+            Color: v.Color,
+            Price: Number(v.Price),
+            Stock: Number(v.Stock),
+            ImgPath: v.ImgPath || null
+          }))
         }
-        setStep(2)
+
+        await addProductApi(payload)
+        toast.success('Thêm sản phẩm mới thành công')
+      }
+
+      onSuccess()
+      onClose()
+    } catch (err: any) {
+      toast.error(err?.message || 'Có lỗi xảy ra')
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-  const handlePrev = () => setStep(1)
+  if (!isOpen) return null
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!formData.Price || !formData.Stock) {
-            toast.error('Vui lòng nhập giá và số lượng')
-            return
-        }
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{product ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}</DialogTitle>
+        </DialogHeader>
 
-        try {
-            setIsLoading(true)
+        <form onSubmit={handleSubmit} className="space-y-5 py-4">
+          {!product && (
+            <>
+              <div>
+                <Label>Tên sản phẩm</Label>
+                <Input
+                  value={formData.NameProduct}
+                  onChange={e => handleChange('NameProduct', e.target.value)}
+                  placeholder="Tên sản phẩm"
+                />
+              </div>
 
-            if (product) {
-                // Update
-                await updateProductApi(formData.IdProduct, formData)
-                toast.success('Cập nhật sản phẩm thành công')
-            } else {
-                // Add new
-                await addProductApi(formData)
-                toast.success('Thêm sản phẩm mới thành công')
-            }
+              <div>
+                <Label>Loại sản phẩm</Label>
+                <select
+                  value={formData.IdCategory}
+                  onChange={e => handleChange('IdCategory', e.target.value)}
+                  className="w-full rounded-xl border p-2"
+                >
+                  <option value="01">Điện thoại</option>
+                  <option value="02">Phụ kiện</option>
+                </select>
+              </div>
+            </>
+          )}
 
-            onSuccess()
-            onClose()
-        } catch (err: any) {
-            toast.error(err.message)
-        } finally {
-            setIsLoading(false)
-        }
-    }
+          <div>
+            <Label>Mô tả</Label>
+            <Textarea
+              value={formData.Decription}
+              onChange={e => handleChange('Decription', e.target.value)}
+              placeholder="Mô tả sản phẩm"
+            />
+          </div>
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent
-                id="product-modal-content" // Fix aria-describedby warning
-                className="sm:max-w-[500px] border-none bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl"
-            >
-                <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">
-                        {product ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
-                    </DialogTitle>
-                </DialogHeader>
+          {formData.variants.map((variant, idx) => (
+            <div key={idx} className="space-y-2">
+              <div>
+                <Label>Màu sắc</Label>
+                <Input
+                  value={variant.Color}
+                  onChange={e => handleVariantChange(idx, 'Color', e.target.value)}
+                  placeholder="Ví dụ: Đen, Trắng"
+                />
+              </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5 py-4">
-                    {step === 1 && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="NameProduct">Tên sản phẩm</Label>
-                                <Input
-                                    name="NameProduct"
-                                    value={formData.NameProduct}
-                                    onChange={handleChange}
-                                    placeholder="Nhập tên sản phẩm"
-                                    required
-                                />
-                            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Giá (VNĐ)</Label>
+                  <Input
+                    type="number"
+                    value={variant.Price}
+                    onChange={e => handleVariantChange(idx, 'Price', Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label>Số lượng</Label>
+                  <Input
+                    type="number"
+                    value={variant.Stock}
+                    onChange={e => handleVariantChange(idx, 'Stock', Number(e.target.value))}
+                  />
+                </div>
+              </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="IdCategory">Loại sản phẩm</Label>
-                                <select                            
-                                    name="IdCategory"
-                                    value={formData.IdCategory}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border p-2"
-                                >
-                                    <option value="1">Điện thoại</option>
-                                    <option value="2">Phụ kiện</option>
-                                </select>
-                            </div>
+              <div>
+                <Label>Link hình ảnh</Label>
+                <Input
+                  value={variant.ImgPath}
+                  onChange={e => handleVariantChange(idx, 'ImgPath', e.target.value)}
+                  placeholder="https://example.com/image.png"
+                />
+              </div>
+            </div>
+          ))}
 
-                            <div className="space-y-2">
-                                <Label htmlFor="Decription">Mô tả sản phẩm</Label>
-                                <Textarea
-                                    name="Decription"
-                                    value={formData.Decription}
-                                    onChange={handleChange}
-                                    placeholder="Mô tả chi tiết sản phẩm"
-                                    className="min-h-[100px]"
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    {step === 2 && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="Color">Màu sắc</Label>
-                                <Input
-                                    name="Color"
-                                    value={formData.Color}
-                                    onChange={handleChange}
-                                    placeholder="Ví dụ: Đen, Trắng"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="Price">Giá bán (VNĐ)</Label>
-                                    <Input
-                                        type="number"
-                                        name="Price"
-                                        value={formData.Price}
-                                        onChange={handleChange}
-                                        placeholder="34990000"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="Stock">Số lượng tồn kho</Label>
-                                    <Input
-                                        type="number"
-                                        name="Stock"
-                                        value={formData.Stock}
-                                        onChange={handleChange}
-                                        placeholder="10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="ImgPath">Link hình ảnh (URL)</Label>
-                                <Input
-                                    name="ImgPath"
-                                    value={formData.ImgPath}
-                                    onChange={handleChange}
-                                    placeholder="https://example.com/image.png"
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    <DialogFooter className="pt-4 flex justify-between">
-                        {step === 2 ? (
-                            <Button type="button" variant="outline" onClick={handlePrev}>
-                                Quay lại
-                            </Button>
-                        ) : <div />}
-
-                        {step === 1 ? (
-                            <Button type="button" onClick={handleNext}>
-                                Tiếp tục
-                            </Button>
-                        ) : (
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (product ? 'Cập nhật' : 'Thêm mới')}
-                            </Button>
-                        )}
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    )
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {product ? 'Cập nhật' : 'Thêm mới'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }

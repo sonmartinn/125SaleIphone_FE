@@ -32,8 +32,8 @@ const Index: React.FC = () => {
 
           let category: 'iphone' | 'accessory' | null = null
 
-          if (p.IdCategory === '1') category = 'iphone'
-          else if (p.IdCategory === '2') category = 'accessory'
+          if (p.IdCategory === '01') category = 'iphone'
+          else if (p.IdCategory === '02') category = 'accessory'
 
           return {
             id: String(p.IdProduct),
