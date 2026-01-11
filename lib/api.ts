@@ -1,33 +1,38 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
-async function apiFetch(endpoint: string, options: RequestInit = {}) {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('access_token')
-      : null;
+async function apiFetch(
+  endpoint: string,
+  options: RequestInit & { isFormData?: boolean } = {}
+) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
+  // Tự động set header, bỏ Content-Type nếu là FormData
+  const headers: Record<string, string> = options.isFormData
+    ? { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+    : {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
 
   const res = await fetch(`${API_URL}${endpoint}`, {
-    method: options.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: options.body,
+    ...options,
+    headers,
+    body: options.isFormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
   });
 
   const contentType = res.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
+  let data: any = null;
+
+  if (contentType && contentType.includes('application/json')) {
+    data = await res.json();
+  } else {
     const text = await res.text();
-    throw new Error(
-      `API không trả JSON. Status ${res.status}. Response: ${text}`
-    );
+    if (!res.ok) throw new Error(`API không trả JSON. Status ${res.status}. Response: ${text}`);
   }
 
-  const data = await res.json();
-
   if (!res.ok) {
-    throw new Error(data.message || 'Request failed');
+    throw new Error(data?.message || 'Request thất bại');
   }
 
   return data;
@@ -35,132 +40,46 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
 /* ================= AUTH API ================= */
 
-export const registerApi = (data: {
-  UserName: string;
-  Email: string;
-  Password: string;
-  Password_confirmation: string;
-}) =>
-  apiFetch('/register', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
-export const verifyEmailApi = (data: {
-  Email: string;
-  Code: string;
-}) =>
-  apiFetch('/verify-email', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
-export const resendCodeApi = (data: { Email: string }) =>
-  apiFetch('/resend-code', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
-export const loginApi = (data: {
-  Email: string;
-  Password: string;
-}) =>
-  apiFetch('/login', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
+export const registerApi = (data: any) => apiFetch('/register', { method: 'POST', body: data });
+export const verifyEmailApi = (data: any) => apiFetch('/verify-email', { method: 'POST', body: data });
+export const resendCodeApi = (data: any) => apiFetch('/resend-code', { method: 'POST', body: data });
+export const loginApi = (data: any) => apiFetch('/login', { method: 'POST', body: data });
 export const getProfileApi = () => apiFetch('/profile');
+export const logoutApi = () => apiFetch('/logout', { method: 'POST' });
+export const getMeApi = () => apiFetch('/user');
 
-export const logoutApi = () =>
-  apiFetch('/logout', { method: 'POST' });
-
-export function getMeApi() {
-  return apiFetch('/user');
-}
-
-export const checkoutApi = (data: any) =>
-  apiFetch('/payment/checkout', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
+/* ================= PAYMENT ================= */
+export const checkoutApi = (data: any) => apiFetch('/payment/checkout', { method: 'POST', body: data });
 export const paymentCallbackApi = (params: any) => {
   const queryString = new URLSearchParams(params).toString();
   return apiFetch(`/payment/callback?${queryString}`);
 };
+export const sendMailApi = (data: any) => apiFetch('/payment/send-mail', { method: 'POST', body: data });
 
-export const sendMailApi = (data: any) =>
-  apiFetch('/payment/send-mail', {
+/* ================= PRODUCT MANAGEMENT ================= */
+export const getProductsApi = () => apiFetch('/products');
+export const getProductByIdApi = (id: string | number) => apiFetch(`/products/${id}`);
+export const addProductApi = (data: any) => apiFetch('/products', { method: 'POST', body: data });
+export const updateVariantApi = (IdProduct: string, IdProductVar: string, data: FormData) =>
+  apiFetch(`/products/${IdProduct}/variant/${IdProductVar}/update`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: data,
+    isFormData: true,
   });
-
-// Product Management
-export const getProductsApi = async () => {
-    const response = await fetch('http://localhost:8000/api/products');
-    if (!response.ok) {
-        throw new Error('Không thể tải danh sách sản phẩm');
-    }
-    return await response.json();
-};
-
-export const getProductByIdApi = (id: string | number) =>
-  apiFetch(`/products/${id}`)
-
-export const addProductApi = (data: any) =>
-  apiFetch('/products', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-
-export const updateProductApi = async (id: string, payload: any) => {
-  if (!id) throw new Error('Thiếu IdProductVar')
-
-  // route PUT chuẩn BE
-  return fetch(`http://127.0.0.1:8000/api/product-variants/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  }).then(res => res.json())
-}
-
-export const deleteProductApi = (id: string) =>
-  apiFetch(`/products/${id}`, {
-    method: 'DELETE',
-  });
-
-export const getProductDetailApi = (id: number | string) => apiFetch(`/products/${id}`);
-
+export const deleteProductApi = (id: string) => apiFetch(`/products/${id}`, { method: 'DELETE' });
+export const getProductDetailApi = (id: string | number) => apiFetch(`/products/${id}`);
 export const getProductVariantsApi = () => apiFetch('/product_variants');
 
-// User Management
+/* ================= USER MANAGEMENT ================= */
 export const getUsersApi = () => apiFetch('/users');
+export const updateUserApi = (id: string | number, data: any) => apiFetch(`/users/${id}`, { method: 'PUT', body: data });
+export const deleteUserApi = (id: string | number) => apiFetch(`/users/${id}`, { method: 'DELETE' });
 
-export const updateUserApi = (id: number | string, data: any) =>
-  apiFetch(`/users/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-
-export const deleteUserApi = (id: number | string) =>
-  apiFetch(`/users/${id}`, {
-    method: 'DELETE',
-  });
-
-/* ================= ORDER MANAGEMENT API ================= */
-
+/* ================= ORDER MANAGEMENT ================= */
 export const getOrdersApi = () => apiFetch('/orders');
-
-export const updateOrderStatusApi = (id: string | number, status: number | string) =>
-  apiFetch(`/orders/${id}/status`, {
-    method: 'PUT',
-    body: JSON.stringify({ status }),
+export const updateOrderStatusApi = (id: string | number, status: string | number) =>
+  apiFetch(`/orders/${id}/status`, { 
+    method: 'PUT', 
+    body: JSON.stringify({ status })
   });
-
-export const deleteOrderApi = (id: string | number) =>
-  apiFetch(`/orders/${id}`, {
-    method: 'DELETE',
-  });
+export const deleteOrderApi = (id: string | number) => apiFetch(`/orders/${id}`, { method: 'DELETE' });

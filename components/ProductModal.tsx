@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { addProductApi, updateProductApi } from '@/lib/api'
+import { addProductApi, updateVariantApi } from '@/lib/api'
 
 interface Variant {
   IdProductVar?: string
@@ -26,7 +26,7 @@ interface Variant {
 
 interface ProductForm {
   IdProduct: string
-  IdCategory: string
+  IdCategory?: string
   NameProduct: string
   Decription: string
   variants: Variant[]
@@ -35,18 +35,11 @@ interface ProductForm {
 interface ProductModalProps {
   isOpen: boolean
   onClose: () => void
-  product: any | null
+  product: ProductForm | null
   onSuccess: () => void
 }
 
-export default function ProductModal({
-  isOpen,
-  onClose,
-  product,
-  onSuccess
-}: ProductModalProps) {
-
-  const [step, setStep] = useState(1)
+export default function ProductModal({ isOpen, onClose, product, onSuccess }: ProductModalProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const emptyForm: ProductForm = {
@@ -66,9 +59,7 @@ export default function ProductModal({
 
   const [formData, setFormData] = useState<ProductForm>(emptyForm)
 
-  /* ================================
-   * LOAD DATA KHI EDIT
-   * ================================ */
+  // Load dữ liệu khi edit
   useEffect(() => {
     if (!isOpen) return
 
@@ -78,36 +69,28 @@ export default function ProductModal({
         IdCategory: product.IdCategory ?? '01',
         NameProduct: product.NameProduct ?? '',
         Decription: product.Decription ?? '',
-        variants: product.variants?.length
-          ? product.variants.map((v: any) => ({
-              IdProductVar: v.IdProductVar ?? undefined,
-              Color: v.Color ?? '',
-              Price: v.Price ?? 0,
-              Stock: v.Stock ?? 0,
-              ImgPath: v.ImgPath ?? ''
-            }))
-          : [{
-              Color: '',
-              Price: 0,
-              Stock: 0,
-              ImgPath: ''
-            }]
+        variants: product.variants?.map((v: Variant) => ({
+          IdProductVar: v.IdProductVar,
+          Color: v.Color ?? '',
+          Price: v.Price ?? 0,
+          Stock: v.Stock ?? 0,
+          ImgPath: v.ImgPath ?? ''
+        })) || [
+          {
+            Color: '',
+            Price: 0,
+            Stock: 0,
+            ImgPath: ''
+          }
+        ]
       })
     } else {
       setFormData(emptyForm)
     }
-
-    setStep(1)
   }, [product, isOpen])
 
-  /* ================================
-   * HANDLE INPUT CHANGE
-   * ================================ */
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  const handleChange = (field: keyof ProductForm, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleVariantChange = (index: number, field: keyof Variant, value: any) => {
@@ -116,69 +99,62 @@ export default function ProductModal({
     setFormData(prev => ({ ...prev, variants: newVariants }))
   }
 
-  const handleNext = () => {
-    if (!formData.NameProduct.trim()) {
-      toast.error('Vui lòng nhập tên sản phẩm')
-      return
-    }
-    setStep(2)
-  }
-
-  const handlePrev = () => setStep(1)
-
-  /* ================================
-   * HANDLE SUBMIT
-   * ================================ */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (product && !formData.IdProduct) {
-        toast.error('Thiếu IdProduct')
-        return
-    }
-
-    const firstVariant = formData.variants[0]
-
-    if (!firstVariant.Color || !firstVariant.Price || !firstVariant.Stock) {
-      toast.error('Vui lòng nhập màu, giá và số lượng cho variant')
+    if (!formData.variants || formData.variants.length === 0) {
+      toast.error('Vui lòng nhập ít nhất 1 variant')
       return
     }
 
-    const payload: any = {
-        IdCategory: formData.IdCategory,
-        NameProduct: formData.NameProduct,
-        Decription: formData.Decription,
-        variants: formData.variants.map(v => ({
-            IdProductVar: v.IdProductVar ?? undefined,
+    const firstVariant = formData.variants[0]
+    if (!firstVariant.Color || !firstVariant.Price || !firstVariant.Stock) {
+      toast.error('Vui lòng nhập đầy đủ màu, giá và số lượng cho variant')
+      return
+    }
+
+    try {
+      setIsLoading(true)
+
+      if (product && firstVariant.IdProductVar) {
+        // UPDATE variant
+        const data = new FormData()
+        data.append('Decription', formData.Decription)
+        data.append('Price', firstVariant.Price.toString())
+        data.append('Stock', firstVariant.Stock.toString())
+        data.append('ImgPath', firstVariant.ImgPath)
+
+        await updateVariantApi(formData.IdProduct, firstVariant.IdProductVar, data)
+        toast.success('Cập nhật sản phẩm thành công')
+      } else {
+        // ADD new product
+        const payload = {
+          IdCategory: formData.IdCategory,
+          NameProduct: formData.NameProduct,
+          Decription: formData.Decription,
+          variants: formData.variants.map((v: Variant) => ({
             Color: v.Color,
             Price: Number(v.Price),
             Stock: Number(v.Stock),
             ImgPath: v.ImgPath || null
-        }))
-    }
-
-    try {
-        setIsLoading(true)
-        if (product) {
-            await updateProductApi(formData.IdProduct, payload)
-            toast.success('Cập nhật sản phẩm thành công')
-        } else {
-            await addProductApi(payload)
-            toast.success('Thêm sản phẩm mới thành công')
+          }))
         }
 
-        onSuccess()
-        onClose()
+        await addProductApi(payload)
+        toast.success('Thêm sản phẩm mới thành công')
+      }
+
+      onSuccess()
+      onClose()
     } catch (err: any) {
-        toast.error(err?.message || 'Có lỗi xảy ra')
+      toast.error(err?.message || 'Có lỗi xảy ra')
     } finally {
-        setIsLoading(false)
+      setIsLoading(false)
     }
   }
 
-  /* ================================
-   * RENDER
-   * ================================ */
+  if (!isOpen) return null
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] rounded-2xl">
@@ -187,15 +163,13 @@ export default function ProductModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 py-4">
-          {/* STEP 1: Product info */}
-          {step === 1 && (
+          {!product && (
             <>
               <div>
                 <Label>Tên sản phẩm</Label>
                 <Input
-                  name="NameProduct"
                   value={formData.NameProduct}
-                  onChange={handleChange}
+                  onChange={e => handleChange('NameProduct', e.target.value)}
                   placeholder="Tên sản phẩm"
                 />
               </div>
@@ -203,30 +177,27 @@ export default function ProductModal({
               <div>
                 <Label>Loại sản phẩm</Label>
                 <select
-                  name="IdCategory"
                   value={formData.IdCategory}
-                  onChange={handleChange}
+                  onChange={e => handleChange('IdCategory', e.target.value)}
                   className="w-full rounded-xl border p-2"
                 >
                   <option value="01">Điện thoại</option>
                   <option value="02">Phụ kiện</option>
                 </select>
               </div>
-
-              <div>
-                <Label>Mô tả</Label>
-                <Textarea
-                  name="Decription"
-                  value={formData.Decription}
-                  onChange={handleChange}
-                  placeholder="Mô tả sản phẩm"
-                />
-              </div>
             </>
           )}
 
-          {/* STEP 2: Variant info */}
-          {step === 2 && formData.variants.map((variant, idx) => (
+          <div>
+            <Label>Mô tả</Label>
+            <Textarea
+              value={formData.Decription}
+              onChange={e => handleChange('Decription', e.target.value)}
+              placeholder="Mô tả sản phẩm"
+            />
+          </div>
+
+          {formData.variants.map((variant, idx) => (
             <div key={idx} className="space-y-2">
               <div>
                 <Label>Màu sắc</Label>
@@ -243,7 +214,7 @@ export default function ProductModal({
                   <Input
                     type="number"
                     value={variant.Price}
-                    onChange={e => handleVariantChange(idx, 'Price', e.target.value)}
+                    onChange={e => handleVariantChange(idx, 'Price', Number(e.target.value))}
                   />
                 </div>
                 <div>
@@ -251,7 +222,7 @@ export default function ProductModal({
                   <Input
                     type="number"
                     value={variant.Stock}
-                    onChange={e => handleVariantChange(idx, 'Stock', e.target.value)}
+                    onChange={e => handleVariantChange(idx, 'Stock', Number(e.target.value))}
                   />
                 </div>
               </div>
@@ -268,21 +239,13 @@ export default function ProductModal({
           ))}
 
           <DialogFooter className="flex justify-between">
-            {step === 2 && (
-              <Button type="button" variant="outline" onClick={handlePrev}>
-                Quay lại
-              </Button>
-            )}
-            {step === 1 ? (
-              <Button type="button" onClick={handleNext}>
-                Tiếp tục
-              </Button>
-            ) : (
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {product ? 'Cập nhật' : 'Thêm mới'}
-              </Button>
-            )}
+            <Button variant="outline" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {product ? 'Cập nhật' : 'Thêm mới'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

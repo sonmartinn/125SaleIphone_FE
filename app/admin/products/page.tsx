@@ -24,7 +24,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { ProductVariant } from '@/types/index'
 
 import {
   DropdownMenu,
@@ -33,49 +32,52 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import {
-  getProductsApi,
-  deleteProductApi
-} from '@/lib/api'
-
 import { toast } from 'sonner'
 import ProductModal from '@/components/ProductModal'
+import { getProductsApi, deleteProductApi } from '@/lib/api'
 
-/* ================= TYPES ================= */
+// === TYPES ===
+export interface Variant {
+  IdProductVar?: string
+  Color: string
+  Price: number
+  Stock: number
+  ImgPath: string
+}
 
-interface Product {
-  id: number
-  name: string
+export interface Product {
+  IdProduct: string
+  IdCategory?: string
+  NameProduct: string
+  Decription?: string
   price: number
   stock: number
   image?: string
+  variants?: Variant[]
 }
 
-/* ================= COMPONENT ================= */
+// Dùng cho ProductModal
+export interface ProductForm {
+  IdProduct: string
+  IdCategory: string
+  NameProduct: string
+  Decription: string
+  variants: Variant[]
+}
 
+// === COMPONENT ===
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const [selectedVariant, setSelectedVariant] =
-    useState<ProductVariant | null>(null)
-
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-
-
-  // Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<ProductForm | null>(null)
 
   useEffect(() => {
     fetchProducts()
   }, [])
-
-  /* ================= FETCH ================= */
 
   const fetchProducts = async () => {
     try {
@@ -88,20 +90,20 @@ export default function AdminProducts() {
         const first = variants[0] || {}
 
         return {
-          id: p.IdProduct || p.id,
-          name: p.NameProduct || p.name,
+          IdProduct: p.IdProduct?.toString() || p.id?.toString() || '',
+          IdCategory: p.IdCategory || '01',
+          NameProduct: p.NameProduct || p.name || '',
+          Decription: p.Decription || '',
           price: Number(first.Price || first.price || 0),
-          stock: variants.reduce(
-            (t: number, v: any) =>
-              t + Number(v.Stock || v.stock || 0),
-            0
-          ),
-          image:
-            first.ImgPath ||
-            first.image ||
-            p.ImageProduct ||
-            p.image ||
-            ''
+          stock: variants.reduce((t: number, v: any) => t + Number(v.Stock || v.stock || 0), 0),
+          image: first.ImgPath || first.image || p.ImageProduct || p.image || '',
+          variants: variants.map((v: any) => ({
+            IdProductVar: v.IdProductVar,
+            Color: v.Color || '',
+            Price: v.Price || 0,
+            Stock: v.Stock || 0,
+            ImgPath: v.ImgPath || ''
+          }))
         }
       })
 
@@ -115,16 +117,29 @@ export default function AdminProducts() {
     }
   }
 
-  /* ================= CRUD ================= */
-
+  // === HANDLE MODAL ===
   const handleAdd = () => {
-    setEditingProduct(null)
+    setSelectedProduct(null)
     setIsModalOpen(true)
   }
 
   const handleEdit = (product: Product) => {
-    console.log('EDIT PRODUCT:', product)
-    setEditingProduct(product)
+    // Chuyển Product sang ProductForm
+    const productForm: ProductForm = {
+      IdProduct: product.IdProduct,
+      IdCategory: product.IdCategory || '01', // đảm bảo không undefined
+      NameProduct: product.NameProduct,
+      Decription: product.Decription || '',
+      variants: product.variants?.map(v => ({
+        IdProductVar: v.IdProductVar,
+        Color: v.Color,
+        Price: v.Price,
+        Stock: v.Stock,
+        ImgPath: v.ImgPath
+      })) || [{ Color: '', Price: 0, Stock: 0, ImgPath: '' }]
+    }
+
+    setSelectedProduct(productForm)
     setIsModalOpen(true)
   }
 
@@ -132,20 +147,15 @@ export default function AdminProducts() {
     if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return
     try {
       await deleteProductApi(id)
-      setProducts(prev => prev.filter(p => p.id.toString() !== id))
+      setProducts(prev => prev.filter(p => p.IdProduct !== id))
       toast.success('Đã xóa sản phẩm')
     } catch {
       toast.error('Xóa sản phẩm thất bại')
     }
   }
 
-  /* ================= HELPERS ================= */
-
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price || 0)
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0)
 
   const getStockBadge = (stock: number) => {
     if (stock > 10)
@@ -156,24 +166,17 @@ export default function AdminProducts() {
   }
 
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.NameProduct.toLowerCase().includes(searchTerm.toLowerCase())
   )
-
-  /* ================= RENDER ================= */
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Quản lý sản phẩm
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Thêm, chỉnh sửa và quản lý kho sản phẩm
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý sản phẩm</h1>
+          <p className="text-muted-foreground mt-1">Thêm, chỉnh sửa và quản lý kho sản phẩm</p>
         </div>
-
         <Button onClick={handleAdd}>
           <Plus className="mr-2 h-4 w-4" /> Thêm sản phẩm
         </Button>
@@ -199,9 +202,7 @@ export default function AdminProducts() {
         <div className="flex h-64 flex-col items-center justify-center gap-4 text-destructive">
           <AlertCircle size={40} />
           <p>{error}</p>
-          <Button variant="outline" onClick={fetchProducts}>
-            Thử lại
-          </Button>
+          <Button variant="outline" onClick={fetchProducts}>Thử lại</Button>
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden border">
@@ -215,30 +216,23 @@ export default function AdminProducts() {
                 <TableHead className="text-right">Hành động</TableHead>
               </TableRow>
             </TableHeader>
-
             <TableBody>
               {filteredProducts.length > 0 ? (
                 filteredProducts.map(product => (
-                  <TableRow key={product.id}>
+                  <TableRow key={product.IdProduct}>
                     <TableCell className="flex items-center gap-3">
                       <div className="w-12 h-12 border rounded-lg flex items-center justify-center overflow-hidden">
                         {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-contain"
-                          />
+                          <img src={product.image} alt={product.NameProduct} className="w-full h-full object-contain" />
                         ) : (
                           <ImageIcon className="text-muted-foreground" />
                         )}
                       </div>
-                      {product.name}
+                      {product.NameProduct}
                     </TableCell>
-
                     <TableCell>{formatPrice(product.price)}</TableCell>
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>{getStockBadge(product.stock)}</TableCell>
-
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -247,21 +241,11 @@ export default function AdminProducts() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedProduct(product) 
-                              setIsModalOpen(true)       
-                            }}
-                          >
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            Chỉnh sửa
+                          <DropdownMenuItem onClick={() => handleEdit(product)}>
+                            <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-500"
-                            onClick={() => handleDelete(product.id.toString())}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Xóa
+                          <DropdownMenuItem className="text-red-500" onClick={() => handleDelete(product.IdProduct)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -270,10 +254,7 @@ export default function AdminProducts() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="h-32 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                     Không có sản phẩm nào
                   </TableCell>
                 </TableRow>
@@ -283,13 +264,9 @@ export default function AdminProducts() {
         </div>
       )}
 
-      {/* Modal */}
       <ProductModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setSelectedProduct(null)
-        }}
+        onClose={() => setIsModalOpen(false)}
         product={selectedProduct}
         onSuccess={fetchProducts}
       />
