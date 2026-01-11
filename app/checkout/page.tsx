@@ -87,7 +87,7 @@ const CheckoutPage: React.FC = () => {
       }
 
       const data = await response.json()
-      
+
       if (data.user) {
         setShippingInfo(prev => ({
           ...prev,
@@ -153,7 +153,7 @@ const CheckoutPage: React.FC = () => {
       })
 
       const contentType = response.headers.get('content-type')
-      
+
       if (!response.ok) {
         // Nếu token hết hạn hoặc không hợp lệ
         if (response.status === 401) {
@@ -165,7 +165,7 @@ const CheckoutPage: React.FC = () => {
         }
 
         let errorMessage = 'Không thể đặt hàng'
-        
+
         if (contentType && contentType.includes('application/json')) {
           const errorData = await response.json()
           errorMessage = errorData.message || errorMessage
@@ -174,7 +174,7 @@ const CheckoutPage: React.FC = () => {
           console.error('API returned HTML:', text.substring(0, 200))
           errorMessage = `Lỗi hệ thống (${response.status}). Vui lòng kiểm tra API endpoint.`
         }
-        
+
         throw new Error(errorMessage)
       }
 
@@ -192,7 +192,11 @@ const CheckoutPage: React.FC = () => {
 
       toast.success('Đặt hàng thành công!')
       clearCart()
-      router.push('/orders')
+
+      // Chuyển hướng sau 2 giây để người dùng kịp thấy thông báo
+      setTimeout(() => {
+        router.push('/orders')
+      }, 2000)
 
     } catch (error: any) {
       console.error('❌ Checkout error:', error)
@@ -331,11 +335,10 @@ const CheckoutPage: React.FC = () => {
                       <div className="space-y-4">
                         <label
                           htmlFor="cod"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                            paymentMethod === 'cod'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
-                          }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'cod'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
+                            }`}
                         >
                           <RadioGroupItem value="cod" id="cod" />
                           <Banknote className="text-muted-foreground h-6 w-6" />
@@ -351,11 +354,10 @@ const CheckoutPage: React.FC = () => {
 
                         <label
                           htmlFor="bank"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                            paymentMethod === 'bank'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
-                          }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'bank'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
+                            }`}
                         >
                           <RadioGroupItem value="bank" id="bank" />
                           <CreditCard className="text-muted-foreground h-6 w-6" />
@@ -371,11 +373,10 @@ const CheckoutPage: React.FC = () => {
 
                         <label
                           htmlFor="momo"
-                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                            paymentMethod === 'momo'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
-                          }`}
+                          className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'momo'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
+                            }`}
                         >
                           <RadioGroupItem value="momo" id="momo" />
                           <Smartphone className="text-muted-foreground h-6 w-6" />
@@ -403,10 +404,34 @@ const CheckoutPage: React.FC = () => {
                     {/* Items */}
                     <div className="mb-6 space-y-4">
                       {items.map(item => {
-                        const price = item.selectedVariant?.Price || 
-                          (item.product.variants?.find(v => v.Color === item.selectedColor)?.Price) ||
-                          item.product.price
-                        const image = item.selectedVariant?.ImgPath || item.product.image
+                        // Logic lấy giá linh hoạt
+                        let price = 0
+                        let image = item.product.image
+                        let color = item.selectedColor || ''
+                        let stock = 0
+
+                        // Nếu có selectedVariant
+                        if (item.selectedVariant) {
+                          price = Number(item.selectedVariant.Price) || 0
+                          image = item.selectedVariant.ImgPath || item.product.image
+                          color = item.selectedVariant.Color || color
+                          stock = item.selectedVariant.Stock || 0
+                        }
+                        // Nếu không có selectedVariant nhưng có variants array
+                        else if (item.product.variants && item.product.variants.length > 0) {
+                          const matchingVariant = item.product.variants.find(
+                            v => v.Color === item.selectedColor
+                          ) || item.product.variants[0]
+
+                          price = Number(matchingVariant.Price) || 0
+                          image = matchingVariant.ImgPath || item.product.image
+                          color = matchingVariant.Color || color
+                          stock = matchingVariant.Stock || 0
+                        }
+                        // Fallback về giá sản phẩm gốc
+                        else {
+                          price = Number(item.product.price) || 0
+                        }
 
                         return (
                           <div
@@ -425,11 +450,11 @@ const CheckoutPage: React.FC = () => {
                                 {item.product.name}
                               </p>
                               <p className="text-muted-foreground text-xs">
-                                {item.selectedColor && `${item.selectedColor} • `}
+                                {color && `${color} • `}
                                 SL: {item.quantity}
                               </p>
                               <p className="text-foreground text-sm font-medium">
-                                {formatPrice(Number(price) * item.quantity)}
+                                {formatPrice(price * item.quantity)}
                               </p>
                             </div>
                           </div>

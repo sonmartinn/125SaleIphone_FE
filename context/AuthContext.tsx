@@ -22,6 +22,7 @@ interface AuthContextType {
   user: any;
   isAuthenticated: boolean;
   isLoading: boolean;
+  token: string | null;
   register: (
     name: string,
     email: string,
@@ -44,22 +45,25 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Auto login nếu có token
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    const storedToken = localStorage.getItem('access_token');
+    if (!storedToken) {
       setIsLoading(false);
       return;
     }
 
-  getProfileApi()
+    setToken(storedToken);
+    getProfileApi()
       .then((res: ProfileResponse) => {
         setUser(res.data);
       })
       .catch(() => {
         localStorage.removeItem('access_token');
+        setToken(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -117,6 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       localStorage.setItem('access_token', res.access_token);
+      setToken(res.access_token);
 
       const profileRes: ProfileResponse = await getProfileApi();
       setUser(profileRes.data);
@@ -134,6 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await logoutApi();
     localStorage.removeItem('access_token');
     setUser(null);
+    setToken(null);
   };
 
 return (
@@ -142,6 +148,7 @@ return (
         user,
         isAuthenticated: !!user,
         isLoading,
+        token,
         register,
         verifyEmail,
         resendCode,

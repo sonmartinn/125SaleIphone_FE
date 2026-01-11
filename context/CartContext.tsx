@@ -43,6 +43,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     selectedVariantId?: string
   ) => {
     setItems(prev => {
+      // Tìm variant object tương ứng
+      const variant = product.variants?.find(v => v.IdProductVar === selectedVariantId)
+
       const existingIndex = prev.findIndex(
         item =>
           item.product.id === product.id &&
@@ -56,7 +59,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         return updated
       }
 
-      return [...prev, { product, quantity: 1, selectedColor, selectedStorage: selectedVariantId }]
+      return [
+        ...prev,
+        {
+          product,
+          quantity: 1,
+          selectedColor,
+          selectedStorage: selectedVariantId,
+          selectedVariant: variant
+        }
+      ]
     })
   }
 
