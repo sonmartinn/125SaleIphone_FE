@@ -37,7 +37,7 @@ const CartPage: React.FC = () => {
   const totalPrice = items.reduce((sum, item) => {
     // Thử nhiều cách lấy giá
     let price = 0
-    
+
     if (item.selectedVariant?.Price) {
       price = Number(item.selectedVariant.Price)
     } else if (item.product.price) {
@@ -49,7 +49,7 @@ const CartPage: React.FC = () => {
       ) || item.product.variants[0]
       price = Number(matchingVariant.Price)
     }
-    
+
     console.log(`💰 Price for ${item.product.name}:`, price)
     return sum + (price * item.quantity)
   }, 0)
@@ -102,7 +102,7 @@ const CartPage: React.FC = () => {
                   let image = item.product.image
                   let color = item.selectedColor || ''
                   let stock = 0
-                  
+
                   // Nếu có selectedVariant
                   if (item.selectedVariant) {
                     price = Number(item.selectedVariant.Price) || 0
@@ -115,7 +115,7 @@ const CartPage: React.FC = () => {
                     const matchingVariant = item.product.variants.find(
                       v => v.Color === item.selectedColor
                     ) || item.product.variants[0]
-                    
+
                     price = Number(matchingVariant.Price) || 0
                     image = matchingVariant.ImgPath || item.product.image
                     color = matchingVariant.Color || color
@@ -134,9 +134,11 @@ const CartPage: React.FC = () => {
                     hasVariantsArray: !!item.product.variants
                   })
 
+                  const productId = item.product.id || (item.product as any).IdProduct || ''
+
                   return (
                     <div
-                      key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedStorage || ''}`}
+                      key={`${productId}-${item.selectedColor || ''}-${item.selectedStorage || ''}`}
                       className="apple-card flex flex-col gap-6 p-6 sm:flex-row"
                     >
                       {/* Image */}
@@ -153,7 +155,7 @@ const CartPage: React.FC = () => {
                         <h3 className="text-foreground mb-1 text-lg font-semibold">
                           {item.product.name}
                         </h3>
-                        
+
                         {/* Hiển thị màu sắc và thông tin */}
                         <div className="text-muted-foreground mb-2 text-sm">
                           {color && <span>Màu: {color}</span>}
@@ -179,7 +181,7 @@ const CartPage: React.FC = () => {
                         </p>
 
                         {/* Debug info - XÓA SAU KHI FIX */}
-                       
+
                       </div>
 
                       {/* Quantity & Actions */}
@@ -187,7 +189,7 @@ const CartPage: React.FC = () => {
                         <div className="border-border flex items-center gap-3 rounded-full border px-2 py-1">
                           <button
                             onClick={() =>
-                              updateQuantity(item.product.id, item.quantity - 1)
+                              updateQuantity(productId, item.quantity - 1)
                             }
                             disabled={item.quantity <= 1}
                             className="hover:bg-secondary rounded-full p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -199,7 +201,7 @@ const CartPage: React.FC = () => {
                           </span>
                           <button
                             onClick={() =>
-                              updateQuantity(item.product.id, item.quantity + 1)
+                              updateQuantity(productId, item.quantity + 1)
                             }
                             disabled={stock > 0 && item.quantity >= stock}
                             className="hover:bg-secondary rounded-full p-1 transition-colors disabled:opacity-50"
@@ -208,7 +210,7 @@ const CartPage: React.FC = () => {
                           </button>
                         </div>
                         <button
-                          onClick={() => removeFromCart(item.product.id)}
+                          onClick={() => removeFromCart(productId)}
                           className="text-destructive hover:text-destructive/80 transition-colors"
                         >
                           <Trash2 className="h-5 w-5" />
