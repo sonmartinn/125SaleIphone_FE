@@ -35,6 +35,7 @@ export interface CartItem {
   quantity: number;
   selectedColor?: string;
   selectedStorage?: string;
+  selectedVariant?: ProductVariant;
 }
 
 export interface User {

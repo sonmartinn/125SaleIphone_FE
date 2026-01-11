@@ -87,7 +87,11 @@ const CheckoutPage: React.FC = () => {
       }
 
       const data = await response.json()
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> restore-2h
       if (data.user) {
         setShippingInfo(prev => ({
           ...prev,
@@ -153,7 +157,11 @@ const CheckoutPage: React.FC = () => {
       })
 
       const contentType = response.headers.get('content-type')
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> restore-2h
       if (!response.ok) {
         // Nếu token hết hạn hoặc không hợp lệ
         if (response.status === 401) {
@@ -165,7 +173,11 @@ const CheckoutPage: React.FC = () => {
         }
 
         let errorMessage = 'Không thể đặt hàng'
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> restore-2h
         if (contentType && contentType.includes('application/json')) {
           const errorData = await response.json()
           errorMessage = errorData.message || errorMessage
@@ -174,7 +186,11 @@ const CheckoutPage: React.FC = () => {
           console.error('API returned HTML:', text.substring(0, 200))
           errorMessage = `Lỗi hệ thống (${response.status}). Vui lòng kiểm tra API endpoint.`
         }
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> restore-2h
         throw new Error(errorMessage)
       }
 
@@ -192,7 +208,15 @@ const CheckoutPage: React.FC = () => {
 
       toast.success('Đặt hàng thành công!')
       clearCart()
+<<<<<<< HEAD
       router.push('/orders')
+=======
+
+      // Chuyển hướng sau 2 giây để người dùng kịp thấy thông báo
+      setTimeout(() => {
+        router.push('/orders')
+      }, 2000)
+>>>>>>> restore-2h
 
     } catch (error: any) {
       console.error('❌ Checkout error:', error)
@@ -403,10 +427,41 @@ const CheckoutPage: React.FC = () => {
                     {/* Items */}
                     <div className="mb-6 space-y-4">
                       {items.map(item => {
+<<<<<<< HEAD
                         const price = item.selectedVariant?.Price || 
                           (item.product.variants?.find(v => v.Color === item.selectedColor)?.Price) ||
                           item.product.price
                         const image = item.selectedVariant?.ImgPath || item.product.image
+=======
+                        // Logic lấy giá linh hoạt
+                        let price = 0
+                        let image = item.product.image
+                        let color = item.selectedColor || ''
+                        let stock = 0
+
+                        // Nếu có selectedVariant
+                        if (item.selectedVariant) {
+                          price = Number(item.selectedVariant.Price) || 0
+                          image = item.selectedVariant.ImgPath || item.product.image
+                          color = item.selectedVariant.Color || color
+                          stock = item.selectedVariant.Stock || 0
+                        }
+                        // Nếu không có selectedVariant nhưng có variants array
+                        else if (item.product.variants && item.product.variants.length > 0) {
+                          const matchingVariant = item.product.variants.find(
+                            v => v.Color === item.selectedColor
+                          ) || item.product.variants[0]
+
+                          price = Number(matchingVariant.Price) || 0
+                          image = matchingVariant.ImgPath || item.product.image
+                          color = matchingVariant.Color || color
+                          stock = matchingVariant.Stock || 0
+                        }
+                        // Fallback về giá sản phẩm gốc
+                        else {
+                          price = Number(item.product.price) || 0
+                        }
+>>>>>>> restore-2h
 
                         return (
                           <div
@@ -425,11 +480,19 @@ const CheckoutPage: React.FC = () => {
                                 {item.product.name}
                               </p>
                               <p className="text-muted-foreground text-xs">
+<<<<<<< HEAD
                                 {item.selectedColor && `${item.selectedColor} • `}
                                 SL: {item.quantity}
                               </p>
                               <p className="text-foreground text-sm font-medium">
                                 {formatPrice(Number(price) * item.quantity)}
+=======
+                                {color && `${color} • `}
+                                SL: {item.quantity}
+                              </p>
+                              <p className="text-foreground text-sm font-medium">
+                                {formatPrice(price * item.quantity)}
+>>>>>>> restore-2h
                               </p>
                             </div>
                           </div>

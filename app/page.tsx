@@ -40,7 +40,7 @@ const Index: React.FC = () => {
             name: p.NameProduct,
             subtitle: p.Decription || '',
             price: Number(variant?.Price ?? 0),
-            image: variant?.ImgPath ?? '/images/default.png',
+            image: variant?.ImgPath ?? '/images/default.svg',
             category,
             isNew: false,
             isFeatured: false
