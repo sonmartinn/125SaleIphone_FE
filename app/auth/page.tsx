@@ -35,7 +35,7 @@ const AuthPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.Role == '2' || user.Role === 2) {
+      if (user.Role == '01' || user.Role === 2) {
         router.push('/admin')
       } else {
         router.push(from)
