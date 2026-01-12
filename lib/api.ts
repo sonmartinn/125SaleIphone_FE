@@ -2,7 +2,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 async function apiFetch(
   endpoint: string,
-  options: RequestInit & { isFormData?: boolean } = {}
+  options: Omit<RequestInit, 'body'> & { body?: any; isFormData?: boolean } = {}
 ) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
@@ -10,10 +10,10 @@ async function apiFetch(
   const headers: Record<string, string> = options.isFormData
     ? { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
     : {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
 
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -78,14 +78,15 @@ export const deleteUserApi = (id: string | number) => apiFetch(`/users/${id}`, {
 export const updateUserRoleApi = (idUser: string, role: string) =>
   apiFetch(`/users/${idUser}/role`, {
     method: 'PUT',
-    body: JSON.stringify({ Role: role }),
+    body: { Role: role },
   });
 
 /* ================= ORDER MANAGEMENT ================= */
 export const getOrdersApi = () => apiFetch('/orders');
+export const getAdminOrdersApi = () => apiFetch('/admin/orders');
 export const updateOrderStatusApi = (id: string | number, status: string | number) =>
-  apiFetch(`/orders/${id}/status`, { 
-    method: 'PUT', 
-    body: JSON.stringify({ status })
+  apiFetch(`/orders/${id}/status`, {
+    method: 'PUT',
+    body: { status }
   });
 export const deleteOrderApi = (id: string | number) => apiFetch(`/orders/${id}`, { method: 'DELETE' });

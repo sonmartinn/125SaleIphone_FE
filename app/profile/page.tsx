@@ -42,6 +42,9 @@ const ProfilePage: React.FC = () => {
   const [isLoadingOrders, setIsLoadingOrders] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+  const { token } = useAuth()
+
   // Kiểm tra đăng nhập
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -77,24 +80,24 @@ const ProfilePage: React.FC = () => {
   }
 
   const fetchOrders = async () => {
+    if (!token) return
     setIsLoadingOrders(true)
     try {
-      // Giả lập lấy đơn hàng từ API hoặc Supabase
-      // Nếu bạn có API Laravel, gọi API `/orders?userId=${user.IdUser}`
-      const data: Order[] = [
-        // Ví dụ dummy
-        {
-          id: 'ORD001',
-          items: [{ product: { name: 'iPhone 15', image: '/placeholder.svg' }, quantity: 1 }],
-          total_amount: 29990000,
-          payment_method: 'cod',
-          status: 'pending',
-          created_at: new Date().toISOString()
+      const response = await fetch(`${API_URL}/orders`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
-      ]
-      setOrders(data)
+      })
+
+      if (!response.ok) throw new Error('Không thể tải danh sách đơn hàng')
+
+      const result = await response.json()
+      setOrders(result.data || [])
     } catch (error) {
       console.error('Error fetching orders:', error)
+      toast.error('Lỗi khi tải lịch sử đơn hàng')
     } finally {
       setIsLoadingOrders(false)
     }
@@ -202,38 +205,84 @@ const ProfilePage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {orders.map(order => {
-                      const status = getStatusText(order.status)
+                    {orders.map(orderData => {
+                      const order = orderData as any
+
+                      const getVal = (obj: any, keys: string[]) => {
+                        for (const key of keys) {
+                          const val = obj[key]
+                          if (val !== undefined && val !== null && val !== "" && Number(val) !== 0) {
+                            return Number(val)
+                          }
+                        }
+                        return 0
+                      }
+
+                      const orderId = order.id || order.IdOrder || order.order_id || ''
+                      const totalPrice = getVal(order, ['total_amount', 'TotalAmount', 'TotalPrice', 'total_price', 'total'])
+                      const createdAt = order.created_at || order.CreatedAt || new Date().toISOString()
+
+                      const STATUS_MAP: Record<number, { text: string; color: string }> = {
+                        0: { text: 'Đang xử lý', color: 'text-yellow-600' },
+                        1: { text: 'Đang giao hàng', color: 'text-blue-600' },
+                        2: { text: 'Đã giao hàng', color: 'text-purple-600' },
+                        3: { text: 'Hoàn thành', color: 'text-green-600' },
+                        4: { text: 'Đã hủy', color: 'text-red-600' }
+                      }
+                      const statusValue = order.Status !== undefined ? order.Status : (order.status !== undefined ? order.status : 0)
+                      const statusInfo = STATUS_MAP[statusValue] || STATUS_MAP[0]
+
+                      const itemsList = order.items || order.order_items || order.Items || []
+
                       return (
-                        <div key={order.id} className="apple-card p-6">
+                        <div key={orderId} className="apple-card p-6">
                           <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <p className="text-muted-foreground text-sm">Mã đơn hàng</p>
-                              <p className="text-foreground font-mono text-sm">#{order.id}</p>
+                              <p className="text-foreground font-mono text-sm font-bold">#{orderId}</p>
                             </div>
                             <div className="text-left sm:text-right">
-                              <p className="text-muted-foreground text-sm">{formatDate(order.created_at)}</p>
-                              <p className={`text-sm font-medium ${status.color}`}>{status.text}</p>
+                              <p className="text-muted-foreground text-sm">{formatDate(createdAt)}</p>
+                              <p className={`text-sm font-medium ${statusInfo.color}`}>{statusInfo.text}</p>
                             </div>
                           </div>
 
                           <div className="border-border space-y-3 border-t pt-4">
-                            {order.items.map((item, idx) => (
-                              <div key={idx} className="flex items-center gap-4">
-                                <div className="bg-secondary flex h-12 w-12 shrink-0 items-center justify-center rounded-lg">
-                                  <img src={item.product?.image || '/placeholder.svg'} alt={item.product?.name} className="h-8 w-8 object-contain" />
+                            {itemsList.map((item: any, idx: number) => {
+                              const productName = item.product?.name || item.product?.NameProduct || item.product_name || 'Sản phẩm'
+                              let image = item.ImgPath || item.product?.image || item.product?.ImageProduct || ''
+                              if (!image || image.includes('placeholder.svg')) {
+                                image = 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&q=80'
+                              }
+                              const itemQuantity = Number(item.quantity || item.Quantity || 1)
+                              const itemPrice = getVal(item, ['price', 'Price', 'UnitPrice', 'unit_price']) || getVal(item.product || {}, ['PriceProduct', 'price']) || 0
+
+                              return (
+                                <div key={idx} className="flex items-center gap-4">
+                                  <div className="bg-secondary flex h-12 w-12 shrink-0 items-center justify-center rounded-lg">
+                                    <img
+                                      src={image}
+                                      alt={productName}
+                                      className="h-12 w-12 object-contain"
+                                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&q=80' }}
+                                    />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-foreground truncate text-sm font-medium">{productName}</p>
+                                    <p className="text-muted-foreground text-xs">{itemQuantity} x {formatPrice(itemPrice)}</p>
+                                  </div>
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-foreground truncate text-sm font-medium">{item.product?.name}</p>
-                                  <p className="text-muted-foreground text-xs">SL: {item.quantity}</p>
-                                </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
 
                           <div className="border-border mt-4 flex flex-col justify-between gap-2 border-t pt-4 sm:flex-row sm:items-center">
-                            <p className="text-muted-foreground text-sm">{getPaymentMethodText(order.payment_method)}</p>
-                            <p className="text-foreground text-lg font-semibold">{formatPrice(order.total_amount)}</p>
+                            <p className="text-muted-foreground text-sm">
+                              {order.payment_method === 'COD' ? 'Thanh toán khi nhận hàng' :
+                                order.payment_method === 'BANK' ? 'Chuyển khoản ngân hàng' :
+                                  order.payment_method === 'MOMO' ? 'Ví MoMo' : order.payment_method}
+                            </p>
+                            <p className="text-foreground text-lg font-semibold">{formatPrice(totalPrice)}</p>
                           </div>
                         </div>
                       )

@@ -32,7 +32,7 @@ import {
     XCircle,
     CheckCircle2
 } from 'lucide-react'
-import { getOrdersApi, updateOrderStatusApi, deleteOrderApi } from '@/lib/api'
+import { getAdminOrdersApi, updateOrderStatusApi, deleteOrderApi } from '@/lib/api'
 import { toast } from 'sonner'
 
 export default function AdminOrders() {
@@ -48,12 +48,35 @@ export default function AdminOrders() {
     const fetchOrders = async () => {
         try {
             setIsLoading(true)
-            const data = await getOrdersApi()
-            setOrders(Array.isArray(data) ? data : (data.data || []))
+            const data = await getAdminOrdersApi()
+
+            const ordersList = Array.isArray(data) ? data : (data.data || [])
+
+            // Map data từ Backend (PascalCase) sang Frontend (camelCase)
+            const mappedOrders = ordersList.map((order: any) => ({
+                ...order,
+                id: order.IdOrder || order.id,
+                recipient_name: order.address?.FullName || order.user?.FullName || 'Khách lẻ',
+                phone: order.address?.Phone || order.user?.Phone || '',
+                total_amount: Number(order.TotalPrice || order.total_amount || 0),
+                payment_method: order.PaymentMethod || order.payment_method || 'COD',
+                status: Number(order.Status ?? order.status ?? 0)
+            }))
+
+            setOrders(mappedOrders)
+
+            if (mappedOrders.length === 0) {
+                toast.warning('API trả về danh sách rỗng (0 đơn hàng)')
+            } else {
+                toast.success(`Đã tải thành công ${mappedOrders.length} đơn hàng`)
+            }
+
             setError(null)
         } catch (err: any) {
             console.error('Fetch orders error:', err)
-            setError('Không thể tải danh sách đơn hàng. Vui lòng kiểm tra API /api/orders.')
+            const errorMsg = err.message || 'Lỗi không xác định'
+            setError(`Lỗi tải dữ liệu: ${errorMsg}`)
+            toast.error(`API Error: ${errorMsg}`)
         } finally {
             setIsLoading(false)
         }
@@ -90,8 +113,7 @@ export default function AdminOrders() {
             case 0: return { label: 'Đang xử lý', className: 'bg-yellow-500/10 text-yellow-500', icon: Clock }
             case 1: return { label: 'Đang giao', className: 'bg-blue-500/10 text-blue-500', icon: Truck }
             case 2: return { label: 'Đã giao', className: 'bg-purple-500/10 text-purple-500', icon: PackageCheck }
-            case 3: return { label: 'Hoàn thành', className: 'bg-green-500/10 text-green-500', icon: CheckCircle2 }
-            case 4: return { label: 'Đã hủy', className: 'bg-red-500/10 text-red-500', icon: XCircle }
+
             default: return { label: 'Chờ xác nhận', className: 'bg-secondary text-muted-foreground', icon: Clock }
         }
     }
@@ -188,12 +210,6 @@ export default function AdminOrders() {
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 2)} className="cursor-pointer">
                                                         <PackageCheck size={14} className="mr-2" /> Đã giao
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 3)} className="cursor-pointer">
-                                                        <CheckCircle2 size={14} className="mr-2" /> Hoàn thành
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 4)} className="cursor-pointer text-red-500 focus:text-red-500">
-                                                        <XCircle size={14} className="mr-2" /> Hủy đơn
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
