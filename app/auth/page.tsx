@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
-const AuthPage: React.FC = () => {
+const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -286,6 +286,20 @@ const AuthPage: React.FC = () => {
 
       <Footer />
     </div>
+  )
+}
+
+const AuthPage = () => {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
+      <AuthForm />
+    </React.Suspense>
   )
 }
 
