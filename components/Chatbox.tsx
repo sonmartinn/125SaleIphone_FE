@@ -12,35 +12,40 @@ interface Message {
     suggestions?: string[]
 }
 
-// Cơ sở tri thức sản phẩm
+// Cơ sở tri thức sản phẩm (Chỉ iPhone & Phụ kiện)
 const PRODUCT_DATABASE = {
     iphone16Pro: {
         name: 'iPhone 16 Pro/Pro Max',
-        price: '28.990.000đ - 43.990.000đ',
-        chip: 'A18 Pro',
-        screen: '6.3" / 6.9" ProMotion 120Hz',
-        camera: '48MP chính + 48MP Ultra Wide + 12MP Telephoto 5x',
-        colors: ['Titan Tự Nhiên', 'Titan Sa Mạc', 'Titan Trắng', 'Titan Đen'],
-        features: ['Khung Titan', 'Nút Camera Control', 'Apple Intelligence', 'USB-C 3.0']
+        price: '28.990.000đ - 46.990.000đ',
+        specs: 'Chip A18 Pro, Camera Fusion 48MP, Nút Camera Control, Pin 33h video',
+        colors: ['Titan Sa Mạc', 'Titan Tự Nhiên', 'Titan Trắng', 'Titan Đen']
     },
     iphone16: {
         name: 'iPhone 16/Plus',
-        price: '22.990.000đ - 27.990.000đ',
-        chip: 'A18',
-        screen: '6.1" / 6.7" Super Retina XDR',
-        camera: '48MP Fusion + 12MP Ultra Wide',
-        colors: ['Đen', 'Trắng', 'Hồng', 'Xanh Ultramarine', 'Xanh Lá'],
-        features: ['Khung nhôm', 'Nút Action + Camera Control', 'Ceramic Shield']
+        price: '22.990.000đ - 25.990.000đ',
+        specs: 'Chip A18, Camera 48MP, Nút Action, Apple Intelligence',
+        colors: ['Ultramarine', 'Teal', 'Pink', 'White', 'Black']
     },
-    airpodsPro2: {
-        name: 'AirPods Pro 2',
-        price: '6.990.000đ',
-        features: ['Chống ồn chủ động', 'Audio không gian', 'Sạc USB-C', 'Thời lượng 6h']
+    iphone15: {
+        name: 'iPhone 15 Series',
+        price: '18.990.000đ - 28.990.000đ',
+        specs: 'Chip A17 Pro (Pro models), Dynamic Island, USB-C',
+        colors: ['Titan Tự Nhiên', 'Blue', 'Green', 'Yellow', 'Pink']
     },
-    appleWatch: {
-        name: 'Apple Watch Series 10',
-        price: '10.990.000đ - 18.990.000đ',
-        features: ['Màn hình lớn hơn', 'Cảm biến sức khỏe', 'Chống nước 50m']
+    airpods: {
+        name: 'AirPods Pro 2 (USB-C)',
+        price: '5.990.000đ',
+        specs: 'Chống ồn chủ động 2x, Âm thanh thích ứng, Chống bụi/nước IP54'
+    },
+    charger: {
+        name: 'Củ sạc 20W/35W chính hãng',
+        price: '500.000đ - 1.200.000đ',
+        specs: 'Sạc nhanh PD, Bảo vệ quá dòng, Tương thích mọi dòng iPhone'
+    },
+    case: {
+        name: 'Ốp lưng MagSafe',
+        price: '800.000đ - 1.500.000đ',
+        specs: 'Silicon/FineWoven, Hỗ trợ sạc MagSafe, Chống sốc chuẩn quân đội'
     }
 }
 
@@ -49,32 +54,18 @@ class SmartChatbotEngine {
     private context: {
         lastEntity?: string;
         lastIntent?: string;
-        userPreferences?: { product?: string; budget?: string };
+        step?: string; // Để tracking luồng hội thoại (ví dụ: đang hỏi màu -> hỏi dung lượng -> chốt đơn)
     } = {}
 
     private readonly KNOWLEDGE_BASE = {
         delivery: {
-            hn_hcm: 'Giao siêu tốc 2h',
-            provincial: '2-3 ngày làm việc',
-            fee: 'Miễn phí cho đơn hàng trên 1tr',
-            info: '📦 **Thông tin giao hàng:**\n• Nội thành HN/HCM: Nhận hàng trong 2h.\n• Toàn quốc: 2-4 ngày qua GHTK/Viettel Post.\n• Phí ship: Đồng giá 30k, free ship đơn >1tr.'
+            info: '📦 **Giao hàng siêu tốc:**\n• Nội thành HN/HCM: Nhận trong 2h (Grab/Ahamove).\n• Tỉnh thành khác: 2-3 ngày (GHTK/Viettel).\n• Freeship đơn > 1 triệu.'
         },
         warranty: {
-            duration: '12 tháng chính hãng Apple',
-            exchange: '1 đổi 1 trong 30 ngày đầu',
-            centers: 'Bảo hành tại tất cả TTBH Ủy quyền Apple (AASP) toàn quốc.',
-            info: '🛡️ **Chính sách bảo hành:**\n• 12 tháng chính hãng Apple VN.\n• 1 đổi 1 trong 30 ngày nếu phát hiện lỗi phần cứng từ NSX.\n• Hỗ trợ phần mềm trọn đời máy.'
+            info: '🛡️ **Bảo hành 1 đổi 1:**\n• 30 ngày đầu: Lỗi NSX đổi máy mới ngay.\n• 12 tháng: Bảo hành chính hãng tại tất cả AASP ở Việt Nam.'
         },
         installment: {
-            credit: '0% lãi suất qua thẻ tín dụng (Visa/Master/JCB)',
-            finance: 'Trả góp qua Home Credit/HD Saison (Chỉ cần CCCD)',
-            prepaid: 'Trả trước từ 20-50%',
-            info: '💳 **Trả góp ưu đãi:**\n• 0% lãi suất qua thẻ tín dụng (25 ngân hàng).\n• Trả góp duyệt hồ sơ online trong 15p.\n• Chỉ cần CCCD gắn chip.'
-        },
-        tradeIn: {
-            bonus: 'Trợ giá lên đến 2.000.000đ',
-            process: 'Định giá máy cũ nhanh trong 5p tại cửa hàng.',
-            info: '♻️ **Thu cũ đổi mới:**\n• Thu mua mọi dòng iPhone/Android cũ.\n• Trợ giá thêm 1-2 triệu khi lên đời iPhone 16.\n• Thủ tục bù chênh lệch hoặc trả góp phần còn lại.'
+            info: '💳 **Trả góp 0% lãi suất:**\n• Qua thẻ tín dụng (25 ngân hàng).\n• Qua HomeCredit/Mcredit: Trả trước 30%, duyệt 15 phút, chỉ cần CCCD.'
         }
     }
 
@@ -83,195 +74,189 @@ class SmartChatbotEngine {
         const msg = message.toLowerCase().trim()
         const entities: string[] = []
 
-        // Detect product mentions
-        if (msg.includes('iphone 16 pro') || msg.includes('pro max') || msg.includes('16pm')) entities.push('iphone16Pro')
-        else if (msg.includes('iphone 16') || msg.includes('plus')) entities.push('iphone16')
-        else if (msg.includes('iphone 15')) entities.push('iphone15')
+        // 1. Detect Products
+        if (/iphone 16 pro|pro max|16pm|sa mạc|titan/i.test(msg)) entities.push('iphone16Pro')
+        else if (/iphone 16|16 plus|16 thường|ultramarine|teal/i.test(msg)) entities.push('iphone16')
+        else if (/iphone 15|15 pro|15 plus/i.test(msg)) entities.push('iphone15')
+        else if (/airpods|tai nghe/i.test(msg)) entities.push('airpods')
+        else if (/sạc|củ sạc|dây sạc/i.test(msg)) entities.push('charger')
+        else if (/ốp|bao da|kính|cường lực/i.test(msg)) entities.push('case')
 
-        if (msg.includes('airpods') || msg.includes('tai nghe')) entities.push('airpods')
-        if (msg.includes('watch') || msg.includes('đồng hồ')) entities.push('appleWatch')
-
-        // Context override: if user asks a general question after a specific product
+        // Context override
         if (entities.length === 0 && this.context.lastEntity) {
-            entities.push(this.context.lastEntity)
+            // Nếu người dùng hỏi câu tiếp theo mà k nhắc tên sp, dùng context cũ
+            // Trừ khi họ hỏi về danh mục khác hẳn
+            if (!/phụ kiện|khác|dòng nào/i.test(msg)) {
+                entities.push(this.context.lastEntity)
+            }
         }
 
-        // Detect intent
+        // 2. Detect Intent
+        // Ưu tiên các keyword từ Suggestion Button để map chính xác
         const intents = [
-            { pattern: /(giá|bao nhiêu|tiền|cost|price|đắt không)/i, intent: 'price', confidence: 0.95 },
-            { pattern: /(màu|color|mầu|ngoại hình|bảng màu)/i, intent: 'color', confidence: 0.95 },
-            { pattern: /(so sánh|khác gì|tốt hơn|compare|vs)/i, intent: 'compare', confidence: 0.9 },
-            { pattern: /(tính năng|feature|thông số|specs|màn hình|chip|ram)/i, intent: 'features', confidence: 0.9 },
-            { pattern: /(trả góp|góp|hàng tháng|installment)/i, intent: 'installment', confidence: 0.95 },
-            { pattern: /(khuyến mãi|giảm giá|sale|ưu đãi|quà)/i, intent: 'promotion', confidence: 0.9 },
-            { pattern: /(tư vấn|khuyên|nên mua|lựa chọn)/i, intent: 'recommend', confidence: 0.8 },
-            { pattern: /(camera|chụp ảnh|quay phim|zoom)/i, intent: 'camera', confidence: 0.9 },
-            { pattern: /(pin|battery|sạc|charging|dung lượng)/i, intent: 'battery', confidence: 0.9 },
-            { pattern: /(ship|giao hàng|bao lâu|địa chỉ|cửa hàng)/i, intent: 'delivery', confidence: 0.9 },
-            { pattern: /(bảo hành|lỗi|hỏng|warranty|sửa)/i, intent: 'warranty', confidence: 0.9 },
-            { pattern: /(thu cũ|đổi mới|trade in|lên đời)/i, intent: 'trade_in', confidence: 0.9 },
-            { pattern: /(muốn mua|đặt hàng|chốt|order|buy|mua|lấy máy|mua ngay|giá chốt|cho mình đặt|có sẵn.*lấy)/i, intent: 'purchase', confidence: 0.95 },
+            { pattern: /(giá|bao nhiêu|tiền|báo giá)/i, intent: 'price' },
+            { pattern: /(màu|color|xem|titan|sa mạc|tự nhiên|trắng|đen|hồng|xanh|ultramarine|teal|pink|white|black)/i, intent: 'color' },
+            { pattern: /(dung lượng|gb|bộ nhớ|lưu trữ|128gb|256gb|512gb|1tb)/i, intent: 'storage' },
+            { pattern: /(chụp ảnh|quay phim|camera|sống ảo|selfie)/i, intent: 'photography' },
+            { pattern: /(cấu hình|chip|ram|pin|thông số|specs)/i, intent: 'specs' },
+            { pattern: /(trả góp|góp|lãi suất|giấy tờ|hồ sơ)/i, intent: 'installment' },
+            { pattern: /(mua|đặt|chốt|lấy|ship|giao|cửa hàng|địa chỉ|thông tin)/i, intent: 'purchase' },
+            { pattern: /(bảo hành|đổi trả|lỗi)/i, intent: 'warranty' },
+            { pattern: /(phụ kiện|accessories|đồ chơi|mua kèm)/i, intent: 'accessories' },
+            { pattern: /(tư vấn|nên mua|khuyên|help|nhân viên|hỗ trợ)/i, intent: 'consult' },
+            { pattern: /(cảm ơn|thanks|thank|ok|oke|ok nhe|tks|hihi|haha)/i, intent: 'thanks' }
         ]
 
-        let detected = { intent: 'general', entities, confidence: 0.5 }
-        for (const { pattern, intent, confidence } of intents) {
-            if (pattern.test(msg)) {
-                detected = { intent, entities, confidence }
-                break
+        let detectedIntent = 'general'
+        // Check suggestions direct mapping first
+        if (msg.includes('đặt') || msg.includes('mua') || msg.includes('chốt') || msg.includes('thông tin đặt hàng')) detectedIntent = 'purchase'
+        else if (msg.includes('giá') || msg.includes('bao nhiêu')) detectedIntent = 'price'
+        else if (msg.includes('màu') || msg.includes('xem') || msg.includes('titan')) detectedIntent = 'color'
+        else if (msg.includes('tư vấn') || msg.includes('hỗ trợ') || msg.includes('nhân viên')) detectedIntent = 'consult'
+        else if (msg.includes('phụ kiện') || msg.includes('mua kèm')) detectedIntent = 'accessories'
+        else if (msg.includes('dung lượng') || msg.includes('gb') || msg.includes('bộ nhớ')) detectedIntent = 'storage'
+        else if (msg.includes('chụp') || msg.includes('camera')) detectedIntent = 'photography'
+        else if (msg.includes('so sánh')) detectedIntent = 'specs'
+        else if (msg.includes('giấy tờ') || msg.includes('hồ sơ')) detectedIntent = 'installment'
+        else if (/(cảm ơn|thanks|tks|ok|oke)/i.test(msg)) detectedIntent = 'thanks'
+        else {
+            for (const { pattern, intent } of intents) {
+                if (pattern.test(msg)) {
+                    detectedIntent = intent
+                    break
+                }
             }
         }
 
         // Update context
         if (entities[0]) this.context.lastEntity = entities[0]
-        this.context.lastIntent = detected.intent
+        this.context.lastIntent = detectedIntent
 
-        return detected
+        return { intent: detectedIntent, entities, confidence: 1 }
     }
 
-    // Tạo câu trả lời thông minh
+    // Tạo câu trả lời
     generateResponse(userMessage: string): { text: string; suggestions?: string[] } {
         const { intent, entities } = this.analyzeIntent(userMessage)
-        const msg = userMessage.toLowerCase()
+        const entityKey = entities[0] as keyof typeof PRODUCT_DATABASE
+        const product = PRODUCT_DATABASE[entityKey]
 
-        // 0. Purchase Intent
+        // 1. Hỏi về Giá (Price)
+        if (intent === 'price') {
+            if (product) {
+                return {
+                    text: `💰 **Giá ${product.name}** hiện tại:\n${product.price}\n\nĐang có ưu đãi giảm thêm 500k khi thanh toán chuyển khoản! Bạn muốn xem màu hay đặt luôn?`,
+                    suggestions: [`Xem màu ${product.name}`, `Đặt ${product.name}`, 'Trả góp thế nào?']
+                }
+            }
+            return {
+                text: 'Bạn đang quan tâm giá của dòng iPhone nào? 16 Series mới ra mắt hay 15 Series giá tốt?',
+                suggestions: ['Giá iPhone 16 Pro Max', 'Giá iPhone 16 thường', 'Giá iPhone 15']
+            }
+        }
+
+        // 2. Hỏi về Dung lượng (Storage)
+        if (intent === 'storage') {
+            return {
+                text: `💾 **Tư vấn dung lượng phù hợp:**\n\n• **128GB:** Đủ dùng cơ bản (Lưu trữ ảnh/app ít).\n• **256GB:** Thoải mái chụp ảnh, quay video 4K (Khuyên dùng 👍).\n• **512GB/1TB:** Dành cho Creator quay ProRes hoặc lưu trữ "khủng".\n\nBạn dự định dùng máy để làm gì là chính?`,
+                suggestions: ['Lấy bản 256GB', 'Giá bản 128GB', 'Chốt 512GB cho thoải mái']
+            }
+        }
+
+        // 3. Hỏi về Chụp ảnh/Camera (Photography)
+        if (intent === 'photography') {
+            return {
+                text: `📸 **Thánh sống ảo là đây!**\n\n**iPhone 16 Pro Max** chấp hết các loại máy ảnh:\n• Camera Fusion 48MP siêu nét.\n• Zoom quang 5x tia cực tím.\n• Nút **Camera Control** trượt để zoom chuyên nghiệp.\n\nBạn có muốn xem ảnh chụp thử không?`,
+                suggestions: ['Xem ảnh chụp thử', 'So sánh cam 15 Pro', 'Lấy 16 Pro Max màu Sa Mạc']
+            }
+        }
+
+        // 4. Hỏi về Specs/Cấu hình
+        if (intent === 'specs') {
+            if (product) {
+                return {
+                    text: `⚡ **Thông số nổi bật của ${product.name}:**\n• ${product.specs}\n\nMáy cực mạnh, pin trâu. Bạn có muốn xem ảnh thực tế các màu không?`,
+                    suggestions: [`Xem màu ${product.name}`, 'So sánh với bản cũ', `Giá ${product.name}`]
+                }
+            }
+        }
+
+        // 5. Hỏi về Màu sắc
+        if (intent === 'color') {
+            if (product && 'colors' in product) {
+                return {
+                    text: `🎨 **Các màu tùy chọn:**\n${(product as any).colors.join(', ')}\n\nMàu **${(product as any).colors[0]}** đang hot nhất đó ạ. Bạn thích màu nào?`,
+                    suggestions: [`Lấy màu ${(product as any).colors[0]}`, 'Xem giá chi tiết', 'Tư vấn dung lượng']
+                }
+            }
+        }
+
+        // 6. Mua hàng / Giao hàng
         if (intent === 'purchase') {
-            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
+            if (product) {
                 return {
-                    text: `Tuyệt vời! **iPhone 16 Pro Max** là đỉnh cao công nghệ hiện nay. Bạn muốn mình hỗ trợ **đặt hàng online** giao siêu tốc 2h hay muốn ghé showroom trải nghiệm "siêu phẩm" này? 🛍️`,
-                    suggestions: ['Đặt hàng online ngay', 'Tìm cửa hàng gần nhất', 'Tư vấn trả góp 0%']
-                }
-            }
-            if (entities.includes('iphone16')) {
-                return {
-                    text: `iPhone 16 bản tiêu chuẩn đang rất "hot". Bạn muốn đặt màu nào để mình giữ hàng cho bạn ngay? ✨`,
-                    suggestions: ['Chọn màu Ultramarine', 'Làm thủ tục mua ngay', 'Có quà tặng gì không?']
+                    text: `Tuyệt vời! Bạn chốt **${product.name}** phải không? ✨\nBạn có thể để lại SĐT tại đây hoặc liên hệ hotline bên mình để được ưu tiên lên đơn ngay nhé! 👇`,
+                    suggestions: ['0912.345.678 (Hotline)', 'Chat Zalo Shop', 'Xem lại giá']
                 }
             }
             return {
-                text: `Rất vui khi bạn quan tâm! Bạn đang muốn "chốt" model nào? Mình khuyên bạn nên chọn **iPhone 16 Pro Max** để có trải nghiệm tốt nhất! 🍎`,
-                suggestions: ['Chốt 16 Pro Max', 'Xem iPhone 16 thường', 'Phụ kiện Apple']
+                text: 'Bạn muốn đặt mua sản phẩm nào ạ? iPhone hay Phụ kiện?',
+                suggestions: ['Đặt iPhone 16 Pro Max', 'Mua sạc 20W', 'Mua ốp lưng']
             }
         }
 
-        // 1. Delivery & Store info
-        if (intent === 'delivery') {
-            return {
-                text: this.KNOWLEDGE_BASE.delivery.info,
-                suggestions: ['Bảo hành thế nào?', 'Có trả góp không?', 'Địa chỉ ở đâu?']
-            }
-        }
-
-        // 2. Warranty info
-        if (intent === 'warranty') {
-            return {
-                text: this.KNOWLEDGE_BASE.warranty.info,
-                suggestions: ['Chắc chắn hàng chính hãng?', 'Cần mang theo gì?', 'Đổi trả ra sao?']
-            }
-        }
-
-        // 3. Trade-in info
-        if (intent === 'trade_in') {
-            return {
-                text: this.KNOWLEDGE_BASE.tradeIn.info,
-                suggestions: ['iPhone 13 đổi lên được bao nhiêu?', 'Thủ tục thế nào?', 'Có lấy máy luôn không?']
-            }
-        }
-
-        // 4. Installment info
+        // 7. Trả góp
         if (intent === 'installment') {
             return {
                 text: this.KNOWLEDGE_BASE.installment.info,
-                suggestions: ['Lãi suất 0% thật không?', 'Trả trước 0đ được không?', 'Cần giấy tờ gì?']
+                suggestions: ['Tính lãi suất', 'Làm hồ sơ ngay', 'Chat tư vấn']
             }
         }
 
-        // 5. Product Price & Details
-        if (intent === 'price') {
-            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
-                return {
-                    text: `💰 **Giá iPhone 16 Pro Max (Niêm yết):**\n\n• 256GB: **34.990.000đ**\n• 512GB: **40.990.000đ**\n• 1TB: **46.990.000đ**\n\n🎁 *Ưu đãi:* Giảm thêm 2 triệu khi Thu cũ đổi mới và giảm 500k qua cổng thanh toán!`,
-                    suggestions: ['Tính giá trả góp', 'Xem các màu', 'So sánh Specs']
-                }
-            }
-            if (entities.includes('iphone16')) {
-                return {
-                    text: `**iPhone 16 Series giá cực tốt:**\n\n• iPhone 16: Chỉ từ **22.990.000đ**\n• iPhone 16 Plus: Chỉ từ **25.990.000đ**\n\nBạn muốn mình báo giá cụ thể theo dung lượng không? 🌈`,
-                    suggestions: ['Bảng màu mới 16', 'Pin dùng bao lâu?', 'Mua kèm phụ kiện']
-                }
-            }
-        }
-
-        // 5.1 Color Consultation (Thêm chi tiết 16 Pro Max)
-        if (intent === 'color') {
-            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
-                return {
-                    text: `🎨 **Bảng màu iPhone 16 Pro Max cực sang:**\n\n• **Titan Sa Mạc (Desert Titanium):** Màu HOT nhất, thanh lịch và quyền lực.\n• **Titan Tự Nhiên:** Đẳng cấp, bền bỉ qua thời gian.\n• **Titan Trắng & Titan Đen:** Hai màu cơ bản không bao giờ lỗi mốt.\n\nBạn thích sự nổi bật của Titan Sa Mạc hay vẻ tối giản của Titan Đen?`,
-                    suggestions: ['Đặt Titan Sa Mạc', 'Xem Titan Tự Nhiên', 'Giá bản Titan Đen']
-                }
-            }
-            if (entities.includes('iphone16')) {
-                return {
-                    text: `🌈 **Bảng màu iPhone 16/16 Plus:**\n\n• **Ultramarine:** Xanh dương đậm mới lạ, cực kỳ bắt mắt.\n• **Teal:** Xanh lục dịu nhẹ.\n• **Pink:** Hồng pastel.\n• **White & Black:** Tối giản.\n\nBạn thấy màu nào hợp với mình nhất?`,
-                    suggestions: ['Lấy màu Ultramarine', 'Xem màu Pink', 'Tính trả góp']
-                }
-            }
+        // 8. Bảo hành
+        if (intent === 'warranty') {
             return {
-                text: 'Bạn muốn mình tư vấn màu sắc cho dòng máy nào? iPhone 16 Pro Max sang trọng hay iPhone 16 trẻ trung? 🎨',
-                suggestions: ['Màu 16 Pro Max', 'Màu 16 thường']
+                text: this.KNOWLEDGE_BASE.warranty.info,
+                suggestions: ['Địa chỉ bảo hành', 'Lỗi màn hình có đổi k?']
             }
         }
 
-        // 6. Battery info
-        if (intent === 'battery') {
-            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
-                return {
-                    text: `🔋 **Pin iPhone 16 Pro Max đỉnh nhất lịch sử:**\n\nThời lượng xem video lên đến **33 giờ**, thoải mái sử dụng hơn 2 ngày với các tác vụ thông thường. Sạc MagSafe cũng nhanh hơn (lên đến 25W).`,
-                    suggestions: ['Sạc 2h đầy không?', 'Mua củ sạc 30W', 'Pin bản thường thì sao?']
-                }
-            }
+        // 9. Tư vấn phụ kiện
+        if (intent === 'accessories') {
             return {
-                text: 'Dòng iPhone 16 năm nay đều được cải tiến pin đáng kể, trung bình tăng 2-4 tiếng sử dụng so với iPhone 15. Bạn yên tâm dùng cả ngày nhé! 🔋',
-                suggestions: ['So sánh pin cụ thể', 'Sạc nhanh bao lâu?']
+                text: `🎧 **Thế giới phụ kiện Apple chính hãng:**\n\n• **AirPods Pro 2:** Chống ồn chủ động 2x, âm thanh vòm.\n• **Củ sạc 20W/35W:** Sạc nhanh PD, bảo vệ pin.\n• **Ốp lưng MagSafe:** Đa dạng màu sắc, chống sốc chuẩn quân đội.\n\nBạn cần mình tư vấn món nào?`,
+                suggestions: ['Giá AirPods Pro 2', 'Mua củ sạc 20W', 'Xem các mẫu ốp lưng']
             }
         }
 
-        // 7. Feature/Spec info & Camera
-        if (intent === 'features' || intent === 'camera') {
-            if (entities.includes('iphone16Pro') || msg.includes('pro max')) {
-                return {
-                    text: `📸 **Hệ thống Camera & Tính năng 16 Pro Max:**\n\n• **Camera chính 48MP Fusion:** Chụp ảnh không độ trễ.\n• **Telephoto 5x:** Zoom xa cực nét (độc quyền dòng Pro).\n• **Nút Camera Control:** Trượt để zoom, nhấn để chụp như máy ảnh cơ.\n• **Chip A18 Pro:** Chiến mọi game AAA mượt mà.\n• **Màn hình 6.9 inch:** Khổng lồ với viền mỏng nhất từ trước đến nay.`,
-                    suggestions: ['Xem video mẫu', 'Đập hộp 16 Pro Max', 'Giá bản 256GB']
-                }
+        // 10. Tư vấn chung / Mặc định
+        if (intent === 'consult' || userMessage.includes('tư vấn')) {
+            return {
+                text: 'Mình sẵn sàng tư vấn! Bạn phân vân giữa dòng Pro và thường, hay muốn tìm thiết bị phù hợp ngân sách?',
+                suggestions: ['So sánh 16 và 16 Pro', 'Các dòng iPhone giá rẻ', 'Ngân sách 20tr mua gì?']
             }
         }
 
-        // 8. Recommend / Consult
-        if (intent === 'recommend') {
-            if (msg.includes('game') || msg.includes('chủ game')) {
-                return {
-                    text: `🎮 **Dành cho Game thủ:**\nKhông gì qua được **iPhone 16 Pro Max**. Chip A18 Pro có Ray Tracing nhanh hơn 20%, màn hình 6.9 inch cực lớn và tản nhiệt graphene mới giúp máy mát hơn khi leo rank!`,
-                    suggestions: ['Đặt cọc ngay', 'Giá bản 256GB', 'Tay cầm chơi game']
-                }
-            }
-            if (msg.includes('livestream') || msg.includes('quay') || msg.includes('tiktok')) {
-                return {
-                    text: `🎬 **Dành cho Content Creator:**\nBạn nên chọn dòng Pro để có tính năng **Audio Mix** (tách tiếng ồn studio) và quay phim **4K 120fps**. Chất lượng phim như máy điện ảnh chuyên nghiệp luôn! 🎥`,
-                    suggestions: ['Tư vấn mic đi kèm', 'Thẻ nhớ lưu trữ', 'Giá 512GB']
-                }
+        // 11. Cảm ơn
+        if (intent === 'thanks') {
+            return {
+                text: 'Rất vui được hỗ trợ bạn! 🥰\nCần thêm thông tin gì cứ nhắn mình nhé. Chúc bạn một ngày tốt lành!',
+                suggestions: ['Xem iPhone 16 Pro Max', 'Phụ kiện HOT', 'Địa chỉ cửa hàng']
             }
         }
 
         // General greetings & Fallback
-        if (/^(hi|hello|chào|xin chào|hey|alo)/i.test(msg)) {
+        if (/^(hi|hello|chào|xin chào|hey|alo)/i.test(userMessage)) {
             return {
                 text: `Chào bạn! Mình là AI tư vấn chuyên sâu của Apple Store 👋\n\nBạn cần hỗ trợ gì về **iPhone 16**, **Trả góp 0%**, hay **Thu cũ đổi mới** không? Mình luôn sẵn sàng!`,
                 suggestions: ['iPhone 16 Pro có gì mới?', 'Tính giá iPhone 16', 'Địa chỉ cửa hàng']
             }
         }
 
+        // Fallback catch-all
         return {
-            text: `Xin lỗi, mình chưa hiểu rõ yêu cầu. Bạn có thể hỏi về:\n\n• **Giá** các dòng máy\n• Chi tiết **Pin & Camera**\n• Thủ tục **Trả góp/Thu cũ**\n• Chính sách **Ship hàng 2h**\n\nHoặc để lại số điện thoại để nhân viên gọi lại tư vấn nhé! �`,
-            suggestions: ['Giá iPhone 16 Pro', 'Ship hàng 2h', 'Trả góp 0%']
+            text: 'Chào bạn, mình là AI Assistant chuyên về iPhone & Phụ kiện 🍎.\nBạn cần tìm hiểu về **iPhone 16 Series** mới nhất hay các dòng **iPhone 15** giá tốt?',
+            suggestions: ['Giá iPhone 16 Pro Max', 'Xem iPhone 15', 'Phụ kiện chính hãng']
         }
     }
 }

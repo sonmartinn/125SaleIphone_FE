@@ -12,6 +12,7 @@ import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
 import { Loader2, CreditCard, Banknote, Smartphone } from 'lucide-react'
+import { updateVariantApi } from '@/lib/api'
 
 const CheckoutPage: React.FC = () => {
   const { items, clearCart } = useCart()
@@ -188,6 +189,33 @@ const CheckoutPage: React.FC = () => {
       }
 
       toast.success('Đặt hàng thành công!')
+
+      // Cập nhật trừ tồn kho sau khi đặt hàng thành công
+      try {
+        console.log('🔄 Đang cập nhật tồn kho...')
+        await Promise.all(items.map(async (item) => {
+          const variantId = item.selectedVariant?.IdProductVar || item.selectedStorage
+          const productId = item.product.id || item.product.IdProduct
+
+          if (variantId && productId) {
+            const currentStock = Number(item.selectedVariant?.Stock || 0)
+            const newStock = Math.max(0, currentStock - item.quantity)
+
+            const formData = new FormData()
+            formData.append('Stock', newStock.toString())
+            // Giữ nguyên các thông tin khác của variant nếu có thể, hoặc chỉ gửi Stock nếu API cho phép
+            formData.append('Price', (item.selectedVariant?.Price || item.product.price || 0).toString())
+            formData.append('Color', item.selectedVariant?.Color || item.selectedColor || '')
+
+            return updateVariantApi(productId, variantId, formData)
+          }
+        }))
+        console.log('✅ Cập nhật tồn kho hoàn tất')
+      } catch (stockError) {
+        console.warn('⚠️ Lỗi khi cập nhật tồn kho:', stockError)
+        // Không chặn luồng hoàn tất đơn hàng nếu chỉ lỗi cập nhật tồn kho
+      }
+
       clearCart()
       // Chuyển hướng sau 2 giây để người dùng kịp thấy thông báo
       setTimeout(() => {
@@ -331,8 +359,8 @@ const CheckoutPage: React.FC = () => {
                         <label
                           htmlFor="cod"
                           className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'cod'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
                             }`}
                         >
                           <RadioGroupItem value="cod" id="cod" />
@@ -350,8 +378,8 @@ const CheckoutPage: React.FC = () => {
                         <label
                           htmlFor="bank"
                           className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'bank'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
                             }`}
                         >
                           <RadioGroupItem value="bank" id="bank" />
@@ -369,8 +397,8 @@ const CheckoutPage: React.FC = () => {
                         <label
                           htmlFor="momo"
                           className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${paymentMethod === 'momo'
-                              ? 'border-foreground bg-secondary'
-                              : 'border-border hover:border-foreground/50'
+                            ? 'border-foreground bg-secondary'
+                            : 'border-border hover:border-foreground/50'
                             }`}
                         >
                           <RadioGroupItem value="momo" id="momo" />
