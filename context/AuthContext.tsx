@@ -35,6 +35,8 @@ interface AuthContextType {
   resendCode: (email: string) => Promise<void>;
   login: (email: string, password: string) => Promise<{ error?: string }>
   logout: () => Promise<void>;
+
+  fetchUser: () => Promise<void>;
 }
 
 interface ProfileResponse {
@@ -91,7 +93,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-
   const verifyEmail = async (email: string, code: string) => {
     try {
       await verifyEmailApi({
@@ -106,7 +107,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
   }
-
 
   const resendCode = async (email: string) => {
     await resendCodeApi({ Email: email });
@@ -136,7 +136,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-
   const logout = async () => {
     await logoutApi();
     localStorage.removeItem('access_token');
@@ -144,6 +143,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setToken(null);
   };
+
+  const fetchUser = async () => {
+    const storedToken = localStorage.getItem('access_token');
+
+    if (!storedToken) {
+      setUser(null);
+      setToken(null);
+      return;
+    }
+
+    try {
+      setToken(storedToken);
+
+      const res: ProfileResponse = await getProfileApi();
+      setUser(res.data);
+    } catch (err) {
+      localStorage.removeItem('access_token');
+      setUser(null);
+      setToken(null);
+      throw err;
+    }
+  };
+
 
 return (
   <AuthContext.Provider
@@ -157,6 +179,7 @@ return (
         resendCode,
         login,
         logout,
+        fetchUser,
       }}
     >
       {children}

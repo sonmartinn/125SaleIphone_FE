@@ -87,20 +87,11 @@ const AuthPage: React.FC = () => {
     }
   }
 
-  // const handleGoogleLogin = async () => {
-  //   const { error } = await loginWithGoogle()
-  //   if (error) {
-  //     toast.error('Không thể đăng nhập bằng Google. Vui lòng thử lại.')
-  //   }
-  // }
-
-  // const handleFacebookLogin = async () => {
-  //   const { error } = await loginWithFacebook()
-  //   if (error) {
-  //     toast.error('Không thể đăng nhập bằng Facebook. Vui lòng thử lại.')
-  //   }
-  // }
-
+  // Login with Google
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://127.0.0.1:8000/auth/google';
+  }
+  
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -133,7 +124,7 @@ const AuthPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 className="border-border hover:bg-secondary flex h-12 w-full items-center justify-center gap-3"
-                // onClick={handleGoogleLogin}
+                onClick={handleGoogleLogin}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
